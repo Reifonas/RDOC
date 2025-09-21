@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: rdo-app
+    env: node
+    region: oregon # ou frankfurt para Europa
+    plan: free # plano gratuito
+    buildCommand: pnpm install && pnpm run build
+    startCommand: pnpm preview --host 0.0.0.0 --port $PORT
+    
+    # Configurações do ambiente
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        fromService:
+          type: web
+          name: rdo-app
+          property: port
+    
+    # Configurações de build
+    buildFilter:
+      paths:
+        - src/**
+        - public/**
+        - index.html
+        - package.json
+        - pnpm-lock.yaml
+        - vite.config.ts
+        - tsconfig.json
+    
+    # Headers personalizados
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    
+    # Redirects para SPA
+    routes:
+      - type: redirect
+        source: /*
+        destination: /index.html

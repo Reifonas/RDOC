@@ -1,7 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
-import { queryKeys, invalidateQueries } from '../../lib/queryClient';
-import type { User, UserInsert, UserUpdate } from '../../types/database';
+// import { queryKeys, invalidateQueries } from '../../lib/queryClient';
+import type { Usuario, UsuarioInsert, UsuarioUpdate } from '../../types/database.types';
+
+// Type aliases para manter compatibilidade
+type User = Usuario;
+type UserInsert = UsuarioInsert;
+type UserUpdate = UsuarioUpdate;
 
 // Hook para buscar todos os usuários
 export const useUsers = (filters?: {
@@ -10,9 +15,9 @@ export const useUsers = (filters?: {
   search?: string;
 }) => {
   return useQuery({
-    queryKey: queryKeys.users.list(filters || {}),
+    queryKey: ['users', 'list', filters || {}],
     queryFn: async (): Promise<User[]> => {
-      let query = supabase
+      let query = (supabase as any)
         .from('usuarios')
         .select('*')
         .order('nome');
@@ -44,11 +49,11 @@ export const useUsers = (filters?: {
 // Hook para buscar usuário por ID
 export const useUser = (id: string | undefined) => {
   return useQuery({
-    queryKey: queryKeys.users.detail(id || ''),
+    queryKey: ['users', 'detail', id || ''],
     queryFn: async (): Promise<User | null> => {
       if (!id) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('usuarios')
         .select('*')
         .eq('id', id)
@@ -71,13 +76,13 @@ export const useUser = (id: string | undefined) => {
 // Hook para buscar perfil do usuário atual
 export const useUserProfile = () => {
   return useQuery({
-    queryKey: queryKeys.users.profile(),
+    queryKey: ['users', 'profile'],
     queryFn: async (): Promise<User | null> => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('usuarios')
         .select('*')
         .eq('auth_user_id', user.id)
@@ -102,7 +107,7 @@ export const useCreateUser = () => {
 
   return useMutation({
     mutationFn: async (userData: UserInsert): Promise<User> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('usuarios')
         .insert(userData)
         .select()
@@ -116,11 +121,11 @@ export const useCreateUser = () => {
     },
     onSuccess: (newUser) => {
       // Invalidar cache de usuários
-      invalidateQueries.users();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       
       // Adicionar o novo usuário ao cache
       queryClient.setQueryData(
-        queryKeys.users.detail(newUser.id),
+        ['users', 'detail', newUser.id],
         newUser
       );
     },
@@ -136,7 +141,7 @@ export const useUpdateUser = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: UserUpdate }): Promise<User> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('usuarios')
         .update(updates)
         .eq('id', id)
@@ -151,18 +156,18 @@ export const useUpdateUser = () => {
     },
     onSuccess: (updatedUser) => {
       // Invalidar cache de usuários
-      invalidateQueries.users();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       
       // Atualizar o usuário específico no cache
       queryClient.setQueryData(
-        queryKeys.users.detail(updatedUser.id),
+        ['users', 'detail', updatedUser.id],
         updatedUser
       );
 
       // Se for o perfil atual, atualizar também
-      const currentProfile = queryClient.getQueryData(queryKeys.users.profile());
+      const currentProfile = queryClient.getQueryData(['users', 'profile']);
       if (currentProfile && (currentProfile as User).id === updatedUser.id) {
-        queryClient.setQueryData(queryKeys.users.profile(), updatedUser);
+        queryClient.setQueryData(['users', 'profile'], updatedUser);
       }
     },
     onError: (error) => {
@@ -177,7 +182,7 @@ export const useDeleteUser = () => {
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('usuarios')
         .update({ ativo: false, deleted_at: new Date().toISOString() })
         .eq('id', id);
@@ -188,11 +193,11 @@ export const useDeleteUser = () => {
     },
     onSuccess: (_, deletedId) => {
       // Invalidar cache de usuários
-      invalidateQueries.users();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       
       // Remover o usuário específico do cache
       queryClient.removeQueries({
-        queryKey: queryKeys.users.detail(deletedId)
+        queryKey: ['users', 'detail', deletedId]
       });
     },
     onError: (error) => {
@@ -207,7 +212,7 @@ export const useReactivateUser = () => {
 
   return useMutation({
     mutationFn: async (id: string): Promise<User> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('usuarios')
         .update({ ativo: true, deleted_at: null })
         .eq('id', id)
@@ -222,14 +227,16 @@ export const useReactivateUser = () => {
     },
     onSuccess: (reactivatedUser) => {
       // Invalidar cache de usuários
-      invalidateQueries.users();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       
       // Atualizar o usuário no cache
       queryClient.setQueryData(
-        queryKeys.users.detail(reactivatedUser.id),
+        ['users', 'detail', reactivatedUser.id],
         reactivatedUser
       );
     },
     onError: (error) => {
       console.error('Erro ao reativar usuário:', error);
     },
+  });
+};

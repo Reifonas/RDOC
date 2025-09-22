@@ -110,7 +110,7 @@ export const OfflineStatus: React.FC<OfflineStatusProps> = ({
             <Database size={16} className="text-blue-600" />
             <span className="text-sm font-medium text-blue-800">Usuários</span>
           </div>
-          <span className="text-xl font-bold text-blue-600">{stats.usuarios}</span>
+          <span className="text-xl font-bold text-blue-600">{(stats as any).usuarios}</span>
         </div>
         
         <div className="bg-green-50 p-3 rounded-lg">
@@ -118,7 +118,7 @@ export const OfflineStatus: React.FC<OfflineStatusProps> = ({
             <Database size={16} className="text-green-600" />
             <span className="text-sm font-medium text-green-800">Obras</span>
           </div>
-          <span className="text-xl font-bold text-green-600">{stats.obras}</span>
+          <span className="text-xl font-bold text-green-600">{(stats as any).obras}</span>
         </div>
         
         <div className="bg-purple-50 p-3 rounded-lg">
@@ -126,7 +126,7 @@ export const OfflineStatus: React.FC<OfflineStatusProps> = ({
             <Database size={16} className="text-purple-600" />
             <span className="text-sm font-medium text-purple-800">RDOs</span>
           </div>
-          <span className="text-xl font-bold text-purple-600">{stats.rdos}</span>
+          <span className="text-xl font-bold text-purple-600">{(stats as any).rdos}</span>
         </div>
         
         <div className="bg-orange-50 p-3 rounded-lg">
@@ -134,7 +134,7 @@ export const OfflineStatus: React.FC<OfflineStatusProps> = ({
             <Clock size={16} className="text-orange-600" />
             <span className="text-sm font-medium text-orange-800">Pendentes</span>
           </div>
-          <span className="text-xl font-bold text-orange-600">{stats.pendingOperations}</span>
+          <span className="text-xl font-bold text-orange-600">{(stats as any).pendingOperations}</span>
         </div>
       </div>
 
@@ -142,7 +142,7 @@ export const OfflineStatus: React.FC<OfflineStatusProps> = ({
       <div className="bg-gray-50 p-3 rounded-lg mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700">Última sincronização:</span>
-          <span className="text-sm text-gray-600">{formatLastSync(stats.lastSync)}</span>
+          <span className="text-sm text-gray-600">{formatLastSync((stats as any).lastSync)}</span>
         </div>
         
         {pendingOperations.length > 0 && (
@@ -188,7 +188,9 @@ export const OfflineStatus: React.FC<OfflineStatusProps> = ({
                   {formatLastSync(operation.timestamp)}
                 </span>
                 {operation.error && (
-                  <AlertCircle size={14} className="text-red-500" title={operation.error} />
+                  <div title={operation.error}>
+                    <AlertCircle size={14} className="text-red-500" />
+                  </div>
                 )}
               </div>
             ))}

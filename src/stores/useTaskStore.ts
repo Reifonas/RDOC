@@ -1,17 +1,17 @@
-import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
-import { Tarefa, StatusTarefa, PrioridadeTarefa } from '../types/database';
-import { supabase } from '../lib/supabase';
+import { create } from 'zustand'
+// import { persist, subscribeWithSelector } from 'zustand/middleware' // Comentado temporariamente
+import { supabase } from '../lib/supabase'
+import type { Tarefa } from '../types/database.types'
 
-interface TaskState {
+export interface TaskState {
   // Estado
   tasks: Tarefa[];
   currentTask: Tarefa | null;
   loading: boolean;
   error: string | null;
   filters: {
-    status?: StatusTarefa;
-    prioridade?: PrioridadeTarefa;
+    status?: 'pendente' | 'em_andamento' | 'concluida' | 'cancelada';
+    prioridade?: 'baixa' | 'media' | 'alta' | 'urgente';
     responsavel?: string;
     obra?: string;
     search?: string;
@@ -26,7 +26,17 @@ interface TaskState {
   setCurrentTask: (task: Tarefa | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  setFilters: (filters: Partial<TaskState['filters']>) => void;
+  setFilters: (filters: Partial<{
+    status?: 'pendente' | 'em_andamento' | 'concluida' | 'cancelada'
+    prioridade?: 'baixa' | 'media' | 'alta' | 'urgente'
+    responsavel?: string
+    obra?: string
+    search?: string
+    dateRange?: {
+      start: string
+      end: string
+    }
+  }>) => void;
   
   // Operações assíncronas
   fetchTasks: () => Promise<void>;
@@ -35,7 +45,7 @@ interface TaskState {
   createTask: (taskData: Omit<Tarefa, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
   updateTask: (taskId: string, updates: Partial<Tarefa>) => Promise<boolean>;
   deleteTask: (taskId: string) => Promise<boolean>;
-  updateTaskStatus: (taskId: string, status: StatusTarefa) => Promise<boolean>;
+  updateTaskStatus: (taskId: string, status: 'pendente' | 'em_andamento' | 'concluida' | 'cancelada') => Promise<boolean>;
   assignTask: (taskId: string, responsavelId: string) => Promise<boolean>;
   
   // Utilitários
@@ -52,37 +62,138 @@ const initialState = {
   filters: {},
 };
 
-export const useTaskStore = create<TaskState>()()
-  devtools(
-    persist(
-      (set, get) => ({
-        ...initialState,
+export const useTaskStore = create<TaskState>((
+  set, get) => ({
+    ...initialState,
+    
+    // Ações síncronas
+    setTasks: (tasks) => set({ tasks }),
+    
+    setCurrentTask: (task) => set({ currentTask: task }),
+    
+    setLoading: (loading) => set({ loading }),
+    
+    setError: (error) => set({ error }),
+    
+    setFilters: (newFilters) => set(
+      (state) => ({ filters: { ...state.filters, ...newFilters } })
+    ),
+    
+    clearError: () => set({ error: null }),
+    
+    clearFilters: () => set({ filters: {} }),
+    
+    reset: () => set(initialState),
+    
+    // Operações assíncronas
+    fetchTasks: async () => {
+      try {
+        set({ loading: true, error: null });
         
-        // Ações síncronas
-        setTasks: (tasks) => set({ tasks }, false, 'setTasks'),
+        let query = supabase
+          .from('tarefas')
+          .select(`
+            *,
+            responsavel:usuarios!tarefas_responsavel_id_fkey(
+              id,
+              nome,
+              email
+            ),
+            obra:obras!tarefas_obra_id_fkey(
+              id,
+              nome,
+              status
+            )
+          `)
+          .order('created_at', { ascending: false });
         
-        setCurrentTask: (task) => set({ currentTask: task }, false, 'setCurrentTask'),
+        const { filters } = get();
         
-        setLoading: (loading) => set({ loading }, false, 'setLoading'),
+        // Aplicar filtros
+        if (filters.status) {
+          query = query.eq('status', filters.status);
+        }
         
-        setError: (error) => set({ error }, false, 'setError'),
+        if (filters.prioridade) {
+          query = query.eq('prioridade', filters.prioridade);
+        }
         
-        setFilters: (newFilters) => set(
-          (state) => ({ filters: { ...state.filters, ...newFilters } }),
-          false,
-          'setFilters'
-        ),
+        if (filters.responsavel) {
+          query = query.eq('responsavel_id', filters.responsavel);
+        }
         
-        clearError: () => set({ error: null }, false, 'clearError'),
+        if (filters.obra) {
+          query = query.eq('obra_id', filters.obra);
+        }
         
-        clearFilters: () => set({ filters: {} }, false, 'clearFilters'),
+        if (filters.search) {
+          query = query.or(`titulo.ilike.%${filters.search}%,descricao.ilike.%${filters.search}%`);
+        }
         
-        reset: () => set(initialState, false, 'reset'),
+        if (filters.dateRange) {
+          query = query
+            .gte('data_inicio', filters.dateRange.start)
+            .lte('data_fim', filters.dateRange.end);
+        }
         
-        // Operações assíncronas
-        fetchTasks: async () => {
-          try {
-            set({ loading: true, error: null }, false, 'fetchTasks:start');
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        set({ 
+          tasks: data || [], 
+          loading: false 
+        });
+      } catch (error: any) {
+        console.error('Erro ao buscar tarefas:', error);
+        set({ 
+          error: error.message || 'Erro ao buscar tarefas', 
+          loading: false 
+        });
+      }
+    },
+    
+    fetchTaskById: async (taskId: string) => {
+      try {
+        set({ loading: true, error: null });
+        
+        const { data, error } = await supabase
+          .from('tarefas')
+          .select(`
+            *,
+            responsavel:usuarios!tarefas_responsavel_id_fkey(
+              id,
+              nome,
+              email
+            ),
+            obra:obras!tarefas_obra_id_fkey(
+              id,
+              nome,
+              status
+            )
+          `)
+          .eq('id', taskId)
+          .single();
+        
+        if (error) throw error;
+        
+        set({ 
+          currentTask: data, 
+          loading: false 
+        });
+      } catch (error: any) {
+        console.error('Erro ao buscar tarefa:', error);
+        set({ 
+          error: error.message || 'Erro ao buscar tarefa', 
+          loading: false 
+        });
+      }
+    },
+    
+    fetchTasksByObra: async (obraId: string) => {
+      try {
+        set({ loading: true, error: null });
+
             
             let query = supabase
               .from('tarefas')
@@ -137,99 +248,26 @@ export const useTaskStore = create<TaskState>()()
             set({ 
               tasks: data || [], 
               loading: false 
-            }, false, 'fetchTasks:success');
+            });
           } catch (error: any) {
             console.error('Erro ao buscar tarefas:', error);
             set({ 
               error: error.message || 'Erro ao buscar tarefas', 
               loading: false 
-            }, false, 'fetchTasks:error');
+            });
           }
         },
         
-        fetchTaskById: async (taskId: string) => {
-          try {
-            set({ loading: true, error: null }, false, 'fetchTaskById:start');
-            
-            const { data, error } = await supabase
-              .from('tarefas')
-              .select(`
-                *,
-                responsavel:usuarios!tarefas_responsavel_id_fkey(
-                  id,
-                  nome,
-                  email
-                ),
-                obra:obras!tarefas_obra_id_fkey(
-                  id,
-                  nome,
-                  status
-                )
-              `)
-              .eq('id', taskId)
-              .single();
-            
-            if (error) throw error;
-            
-            set({ 
-              currentTask: data, 
-              loading: false 
-            }, false, 'fetchTaskById:success');
-          } catch (error: any) {
-            console.error('Erro ao buscar tarefa:', error);
-            set({ 
-              error: error.message || 'Erro ao buscar tarefa', 
-              loading: false 
-            }, false, 'fetchTaskById:error');
-          }
-        },
-        
-        fetchTasksByObra: async (obraId: string) => {
-          try {
-            set({ loading: true, error: null }, false, 'fetchTasksByObra:start');
-            
-            const { data, error } = await supabase
-              .from('tarefas')
-              .select(`
-                *,
-                responsavel:usuarios!tarefas_responsavel_id_fkey(
-                  id,
-                  nome,
-                  email
-                ),
-                obra:obras!tarefas_obra_id_fkey(
-                  id,
-                  nome,
-                  status
-                )
-              `)
-              .eq('obra_id', obraId)
-              .order('data_inicio', { ascending: true });
-            
-            if (error) throw error;
-            
-            set({ 
-              tasks: data || [], 
-              loading: false 
-            }, false, 'fetchTasksByObra:success');
-          } catch (error: any) {
-            console.error('Erro ao buscar tarefas da obra:', error);
-            set({ 
-              error: error.message || 'Erro ao buscar tarefas da obra', 
-              loading: false 
-            }, false, 'fetchTasksByObra:error');
-          }
-        },
         
         createTask: async (taskData) => {
           try {
-            set({ loading: true, error: null }, false, 'createTask:start');
+            set({ loading: true, error: null });
             
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
               .from('tarefas')
               .insert({
                 ...taskData,
-                status: 'pendente' as StatusTarefa
+                status: 'pendente'
               })
               .select(`
                 *,
@@ -253,7 +291,7 @@ export const useTaskStore = create<TaskState>()()
             set({ 
               tasks: [data, ...tasks],
               loading: false 
-            }, false, 'createTask:success');
+            });
             
             return true;
           } catch (error: any) {
@@ -261,16 +299,16 @@ export const useTaskStore = create<TaskState>()()
             set({ 
               error: error.message || 'Erro ao criar tarefa', 
               loading: false 
-            }, false, 'createTask:error');
+            });
             return false;
           }
         },
         
         updateTask: async (taskId: string, updates: Partial<Tarefa>) => {
           try {
-            set({ loading: true, error: null }, false, 'updateTask:start');
+            set({ loading: true, error: null });
             
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
               .from('tarefas')
               .update({
                 ...updates,
@@ -304,7 +342,7 @@ export const useTaskStore = create<TaskState>()()
               tasks: updatedTasks,
               currentTask: currentTask?.id === taskId ? data : currentTask,
               loading: false 
-            }, false, 'updateTask:success');
+            });
             
             return true;
           } catch (error: any) {
@@ -312,14 +350,14 @@ export const useTaskStore = create<TaskState>()()
             set({ 
               error: error.message || 'Erro ao atualizar tarefa', 
               loading: false 
-            }, false, 'updateTask:error');
+            });
             return false;
           }
         },
         
-        updateTaskStatus: async (taskId: string, status: StatusTarefa) => {
+        updateTaskStatus: async (taskId: string, status: 'pendente' | 'em_andamento' | 'concluida' | 'cancelada') => {
           try {
-            set({ loading: true, error: null }, false, 'updateTaskStatus:start');
+            set({ loading: true, error: null });
             
             const updates: any = { 
               status,
@@ -333,7 +371,7 @@ export const useTaskStore = create<TaskState>()()
               updates.data_fim_real = new Date().toISOString();
             }
             
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
               .from('tarefas')
               .update(updates)
               .eq('id', taskId)
@@ -364,7 +402,7 @@ export const useTaskStore = create<TaskState>()()
               tasks: updatedTasks,
               currentTask: currentTask?.id === taskId ? data : currentTask,
               loading: false 
-            }, false, 'updateTaskStatus:success');
+            });
             
             return true;
           } catch (error: any) {
@@ -372,16 +410,16 @@ export const useTaskStore = create<TaskState>()()
             set({ 
               error: error.message || 'Erro ao atualizar status da tarefa', 
               loading: false 
-            }, false, 'updateTaskStatus:error');
+            });
             return false;
           }
         },
         
         assignTask: async (taskId: string, responsavelId: string) => {
           try {
-            set({ loading: true, error: null }, false, 'assignTask:start');
+            set({ loading: true, error: null });
             
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
               .from('tarefas')
               .update({ 
                 responsavel_id: responsavelId,
@@ -415,7 +453,7 @@ export const useTaskStore = create<TaskState>()()
               tasks: updatedTasks,
               currentTask: currentTask?.id === taskId ? data : currentTask,
               loading: false 
-            }, false, 'assignTask:success');
+            });
             
             return true;
           } catch (error: any) {
@@ -423,14 +461,14 @@ export const useTaskStore = create<TaskState>()()
             set({ 
               error: error.message || 'Erro ao atribuir tarefa', 
               loading: false 
-            }, false, 'assignTask:error');
+            });
             return false;
           }
         },
         
         deleteTask: async (taskId: string) => {
           try {
-            set({ loading: true, error: null }, false, 'deleteTask:start');
+            set({ loading: true, error: null });
             
             const { error } = await supabase
               .from('tarefas')
@@ -447,7 +485,7 @@ export const useTaskStore = create<TaskState>()()
               tasks: filteredTasks,
               currentTask: currentTask?.id === taskId ? null : currentTask,
               loading: false 
-            }, false, 'deleteTask:success');
+            });
             
             return true;
           } catch (error: any) {
@@ -455,23 +493,12 @@ export const useTaskStore = create<TaskState>()()
             set({ 
               error: error.message || 'Erro ao deletar tarefa', 
               loading: false 
-            }, false, 'deleteTask:error');
+            });
             return false;
           }
         },
-      }),
-      {
-        name: 'task-store',
-        partialize: (state) => ({
-          tasks: state.tasks,
-          currentTask: state.currentTask,
-          filters: state.filters,
-        }),
       }
-    ),
-    {
-      name: 'task-store',
-    }
+    )
   );
 
 // Seletores para otimização de performance
@@ -482,11 +509,11 @@ export const useTaskError = () => useTaskStore((state) => state.error);
 export const useTaskFilters = () => useTaskStore((state) => state.filters);
 
 // Seletores derivados
-export const useTasksByStatus = (status: StatusTarefa) => useTaskStore((state) => 
+export const useTasksByStatus = (status: 'pendente' | 'em_andamento' | 'concluida' | 'cancelada') => useTaskStore((state) => 
   state.tasks.filter(task => task.status === status)
 );
 
-export const useTasksByPrioridade = (prioridade: PrioridadeTarefa) => useTaskStore((state) => 
+export const useTasksByPrioridade = (prioridade: 'baixa' | 'media' | 'alta' | 'urgente') => useTaskStore((state) => 
   state.tasks.filter(task => task.prioridade === prioridade)
 );
 

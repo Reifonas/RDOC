@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
-import { queryKeys, invalidateQueries } from '../../lib/queryClient';
-import type { Obra, ObraInsert, ObraUpdate } from '../../types/database';
+// import { queryKeys, invalidateQueries } from '../../lib/queryClient'; // Comentado temporariamente
+import type { Obra, ObraInsert, ObraUpdate } from '../../types/database.types';
 
 // Hook para buscar todas as obras
 export const useObras = (filters?: {
@@ -11,9 +11,9 @@ export const useObras = (filters?: {
   search?: string;
 }) => {
   return useQuery({
-    queryKey: queryKeys.obras.list(filters || {}),
+    queryKey: ['obras', 'list', filters || {}],
     queryFn: async (): Promise<Obra[]> => {
-      let query = supabase
+      let query = (supabase as any)
         .from('obras')
         .select(`
           *,
@@ -53,7 +53,7 @@ export const useObras = (filters?: {
 // Hook para buscar obra por ID
 export const useObra = (id: string | undefined) => {
   return useQuery({
-    queryKey: queryKeys.obras.detail(id || ''),
+    queryKey: ['obras', 'detail', id || ''],
     queryFn: async (): Promise<Obra | null> => {
       if (!id) return null;
 
@@ -85,7 +85,7 @@ export const useObra = (id: string | undefined) => {
 // Hook para buscar obras do usuário
 export const useUserObras = (userId: string | undefined) => {
   return useQuery({
-    queryKey: queryKeys.obras.byUser(userId || ''),
+    queryKey: ['obras', 'byUser', userId || ''],
     queryFn: async (): Promise<Obra[]> => {
       if (!userId) return [];
 
@@ -119,7 +119,7 @@ export const useCreateObra = () => {
     mutationFn: async (obraData: ObraInsert): Promise<Obra> => {
       const { data, error } = await supabase
         .from('obras')
-        .insert(obraData)
+        .insert(obraData as any)
         .select(`
           *,
           responsavel:usuarios!obras_responsavel_id_fkey(id, nome, email),
@@ -135,18 +135,18 @@ export const useCreateObra = () => {
     },
     onSuccess: (newObra) => {
       // Invalidar cache de obras
-      invalidateQueries.obras();
+      queryClient.invalidateQueries({ queryKey: ['obras'] });
       
       // Adicionar a nova obra ao cache
       queryClient.setQueryData(
-        queryKeys.obras.detail(newObra.id),
+        ['obras', 'detail', newObra.id],
         newObra
       );
 
       // Invalidar obras do responsável
       if (newObra.responsavel_id) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.obras.byUser(newObra.responsavel_id)
+          queryKey: ['obras', 'byUser', newObra.responsavel_id]
         });
       }
     },
@@ -162,7 +162,7 @@ export const useUpdateObra = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: ObraUpdate }): Promise<Obra> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('obras')
         .update(updates)
         .eq('id', id)
@@ -181,18 +181,18 @@ export const useUpdateObra = () => {
     },
     onSuccess: (updatedObra) => {
       // Invalidar cache de obras
-      invalidateQueries.obras();
+      queryClient.invalidateQueries({ queryKey: ['obras'] });
       
       // Atualizar a obra específica no cache
       queryClient.setQueryData(
-        queryKeys.obras.detail(updatedObra.id),
+        ['obras', 'detail', updatedObra.id],
         updatedObra
       );
 
       // Invalidar obras do responsável
       if (updatedObra.responsavel_id) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.obras.byUser(updatedObra.responsavel_id)
+          queryKey: ['obras', 'byUser', updatedObra.responsavel_id]
         });
       }
     },
@@ -208,7 +208,7 @@ export const useDeleteObra = () => {
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('obras')
         .update({ ativo: false, deleted_at: new Date().toISOString() })
         .eq('id', id);
@@ -219,15 +219,15 @@ export const useDeleteObra = () => {
     },
     onSuccess: (_, deletedId) => {
       // Invalidar cache de obras
-      invalidateQueries.obras();
+      queryClient.invalidateQueries({ queryKey: ['obras'] });
       
       // Remover a obra específica do cache
       queryClient.removeQueries({
-        queryKey: queryKeys.obras.detail(deletedId)
+        queryKey: ['obras', 'detail', deletedId]
       });
 
       // Invalidar RDOs da obra
-      invalidateQueries.rdosByObra(deletedId);
+      queryClient.invalidateQueries({ queryKey: ['rdos', 'byObra', deletedId] });
     },
     onError: (error) => {
       console.error('Erro ao deletar obra:', error);
@@ -240,7 +240,7 @@ export const useUpdateObraStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }): Promise<Obra> => {
+    mutationFn: async ({ id, status }: { id: string; status: 'ativa' | 'pausada' | 'concluida' | 'cancelada' }): Promise<Obra> => {
       const updates: ObraUpdate = { status };
       
       // Se estiver finalizando, adicionar data de conclusão
@@ -248,7 +248,7 @@ export const useUpdateObraStatus = () => {
         updates.data_conclusao = new Date().toISOString();
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('obras')
         .update(updates)
         .eq('id', id)
@@ -267,18 +267,18 @@ export const useUpdateObraStatus = () => {
     },
     onSuccess: (updatedObra) => {
       // Invalidar cache de obras
-      invalidateQueries.obras();
+      queryClient.invalidateQueries({ queryKey: ['obras'] });
       
       // Atualizar a obra específica no cache
       queryClient.setQueryData(
-        queryKeys.obras.detail(updatedObra.id),
+        ['obras', 'detail', updatedObra.id],
         updatedObra
       );
 
       // Invalidar obras do responsável
       if (updatedObra.responsavel_id) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.obras.byUser(updatedObra.responsavel_id)
+          queryKey: ['obras', 'byUser', updatedObra.responsavel_id]
         });
       }
     },
@@ -291,7 +291,7 @@ export const useUpdateObraStatus = () => {
 // Hook para estatísticas da obra
 export const useObraStats = (id: string | undefined) => {
   return useQuery({
-    queryKey: [...queryKeys.obras.detail(id || ''), 'stats'],
+    queryKey: ['obras', 'detail', id || '', 'stats'],
     queryFn: async () => {
       if (!id) return null;
 
@@ -307,9 +307,9 @@ export const useObraStats = (id: string | undefined) => {
 
       const stats = {
         total_rdos: rdosStats?.length || 0,
-        rdos_pendentes: rdosStats?.filter(r => r.status === 'pendente').length || 0,
-        rdos_aprovados: rdosStats?.filter(r => r.status === 'aprovado').length || 0,
-        rdos_rejeitados: rdosStats?.filter(r => r.status === 'rejeitado').length || 0,
+        rdos_pendentes: rdosStats?.filter((r: any) => r.status === 'pendente').length || 0,
+        rdos_aprovados: rdosStats?.filter((r: any) => r.status === 'aprovado').length || 0,
+        rdos_rejeitados: rdosStats?.filter((r: any) => r.status === 'rejeitado').length || 0,
       };
 
       return stats;

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
-import { Obra, StatusObra } from '../types/database';
+// import { devtools, persist } from 'zustand/middleware';
+import type { Obra } from '../types';
+import type { ObraStatusType } from '../types';
 import { supabase } from '../lib/supabase';
 
 interface ObraState {
@@ -10,7 +11,7 @@ interface ObraState {
   loading: boolean;
   error: string | null;
   filters: {
-    status?: StatusObra;
+    status?: ObraStatusType;
     responsavel?: string;
     search?: string;
   };
@@ -20,7 +21,7 @@ interface ObraState {
   setCurrentObra: (obra: Obra | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  setFilters: (filters: Partial<ObraState['filters']>) => void;
+  setFilters: (filters: Partial<{ status?: ObraStatusType; responsavel?: string; search?: string; }>) => void;
   
   // Operações assíncronas
   fetchObras: () => Promise<void>;
@@ -28,7 +29,7 @@ interface ObraState {
   createObra: (obraData: Omit<Obra, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
   updateObra: (obraId: string, updates: Partial<Obra>) => Promise<boolean>;
   deleteObra: (obraId: string) => Promise<boolean>;
-  updateObraStatus: (obraId: string, status: StatusObra) => Promise<boolean>;
+  updateObraStatus: (obraId: string, status: ObraStatusType) => Promise<boolean>;
   
   // Utilitários
   clearError: () => void;
@@ -44,37 +45,32 @@ const initialState = {
   filters: {},
 };
 
-export const useObraStore = create<ObraState>()()
-  devtools(
-    persist(
-      (set, get) => ({
+export const useObraStore = create<ObraState>()((set, get) => ({
         ...initialState,
         
         // Ações síncronas
-        setObras: (obras) => set({ obras }, false, 'setObras'),
+        setObras: (obras) => set({ obras }),
         
-        setCurrentObra: (obra) => set({ currentObra: obra }, false, 'setCurrentObra'),
+        setCurrentObra: (obra) => set({ currentObra: obra }),
         
-        setLoading: (loading) => set({ loading }, false, 'setLoading'),
+        setLoading: (loading) => set({ loading }),
         
-        setError: (error) => set({ error }, false, 'setError'),
+        setError: (error) => set({ error }),
         
         setFilters: (newFilters) => set(
-          (state) => ({ filters: { ...state.filters, ...newFilters } }),
-          false,
-          'setFilters'
+          (state) => ({ filters: { ...state.filters, ...newFilters } })
         ),
         
-        clearError: () => set({ error: null }, false, 'clearError'),
+        clearError: () => set({ error: null }),
         
-        clearFilters: () => set({ filters: {} }, false, 'clearFilters'),
+        clearFilters: () => set({ filters: {} }),
         
-        reset: () => set(initialState, false, 'reset'),
+        reset: () => set(initialState),
         
         // Operações assíncronas
         fetchObras: async () => {
           try {
-            set({ loading: true, error: null }, false, 'fetchObras:start');
+            set({ loading: true, error: null });
             
             let query = supabase
               .from('obras')
@@ -110,19 +106,19 @@ export const useObraStore = create<ObraState>()()
             set({ 
               obras: data || [], 
               loading: false 
-            }, false, 'fetchObras:success');
+            });
           } catch (error: any) {
             console.error('Erro ao buscar obras:', error);
             set({ 
               error: error.message || 'Erro ao buscar obras', 
               loading: false 
-            }, false, 'fetchObras:error');
+            });
           }
         },
         
         fetchObraById: async (obraId: string) => {
           try {
-            set({ loading: true, error: null }, false, 'fetchObraById:start');
+            set({ loading: true, error: null });
             
             const { data, error } = await supabase
               .from('obras')
@@ -142,25 +138,25 @@ export const useObraStore = create<ObraState>()()
             set({ 
               currentObra: data, 
               loading: false 
-            }, false, 'fetchObraById:success');
+            });
           } catch (error: any) {
             console.error('Erro ao buscar obra:', error);
             set({ 
               error: error.message || 'Erro ao buscar obra', 
               loading: false 
-            }, false, 'fetchObraById:error');
+            });
           }
         },
         
         createObra: async (obraData) => {
           try {
-            set({ loading: true, error: null }, false, 'createObra:start');
+            set({ loading: true, error: null });
             
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
               .from('obras')
               .insert({
                 ...obraData,
-                status: 'planejamento' as StatusObra
+                status: 'planejamento' as ObraStatusType
               })
               .select(`
                 *,
@@ -179,7 +175,7 @@ export const useObraStore = create<ObraState>()()
             set({ 
               obras: [data, ...obras],
               loading: false 
-            }, false, 'createObra:success');
+            });
             
             return true;
           } catch (error: any) {
@@ -187,16 +183,16 @@ export const useObraStore = create<ObraState>()()
             set({ 
               error: error.message || 'Erro ao criar obra', 
               loading: false 
-            }, false, 'createObra:error');
+            });
             return false;
           }
         },
         
         updateObra: async (obraId: string, updates: Partial<Obra>) => {
           try {
-            set({ loading: true, error: null }, false, 'updateObra:start');
+            set({ loading: true, error: null });
             
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
               .from('obras')
               .update({
                 ...updates,
@@ -225,7 +221,7 @@ export const useObraStore = create<ObraState>()()
               obras: updatedObras,
               currentObra: currentObra?.id === obraId ? data : currentObra,
               loading: false 
-            }, false, 'updateObra:success');
+            });
             
             return true;
           } catch (error: any) {
@@ -233,16 +229,16 @@ export const useObraStore = create<ObraState>()()
             set({ 
               error: error.message || 'Erro ao atualizar obra', 
               loading: false 
-            }, false, 'updateObra:error');
+            });
             return false;
           }
         },
         
-        updateObraStatus: async (obraId: string, status: StatusObra) => {
+        updateObraStatus: async (obraId: string, status: ObraStatusType) => {
           try {
-            set({ loading: true, error: null }, false, 'updateObraStatus:start');
+            set({ loading: true, error: null });
             
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
               .from('obras')
               .update({ 
                 status,
@@ -271,7 +267,7 @@ export const useObraStore = create<ObraState>()()
               obras: updatedObras,
               currentObra: currentObra?.id === obraId ? data : currentObra,
               loading: false 
-            }, false, 'updateObraStatus:success');
+            });
             
             return true;
           } catch (error: any) {
@@ -279,16 +275,16 @@ export const useObraStore = create<ObraState>()()
             set({ 
               error: error.message || 'Erro ao atualizar status da obra', 
               loading: false 
-            }, false, 'updateObraStatus:error');
+            });
             return false;
           }
         },
         
         deleteObra: async (obraId: string) => {
           try {
-            set({ loading: true, error: null }, false, 'deleteObra:start');
+            set({ loading: true, error: null });
             
-            const { error } = await supabase
+            const { error } = await (supabase as any)
               .from('obras')
               .delete()
               .eq('id', obraId);
@@ -303,7 +299,7 @@ export const useObraStore = create<ObraState>()()
               obras: filteredObras,
               currentObra: currentObra?.id === obraId ? null : currentObra,
               loading: false 
-            }, false, 'deleteObra:success');
+            });
             
             return true;
           } catch (error: any) {
@@ -311,46 +307,33 @@ export const useObraStore = create<ObraState>()()
             set({ 
               error: error.message || 'Erro ao deletar obra', 
               loading: false 
-            }, false, 'deleteObra:error');
+            });
             return false;
           }
         },
-      }),
-      {
-        name: 'obra-store',
-        partialize: (state) => ({
-          obras: state.obras,
-          currentObra: state.currentObra,
-          filters: state.filters,
-        }),
-      }
-    ),
-    {
-      name: 'obra-store',
-    }
-  );
+  }));
 
 // Seletores para otimização de performance
-export const useObras = () => useObraStore((state) => state.obras);
-export const useCurrentObra = () => useObraStore((state) => state.currentObra);
-export const useObraLoading = () => useObraStore((state) => state.loading);
-export const useObraError = () => useObraStore((state) => state.error);
-export const useObraFilters = () => useObraStore((state) => state.filters);
+export const useObrasStore = () => useObraStore((state) => state.obras);
+export const useCurrentObraStore = () => useObraStore((state) => state.currentObra);
+export const useObraLoadingStore = () => useObraStore((state) => state.loading);
+export const useObraErrorStore = () => useObraStore((state) => state.error);
+export const useObraFiltersStore = () => useObraStore((state) => state.filters);
 
 // Seletores derivados
-export const useObrasByStatus = (status: StatusObra) => useObraStore((state) => 
+export const useObrasByStatusStore = (status: ObraStatusType) => useObraStore((state) =>
   state.obras.filter(obra => obra.status === status)
 );
 
-export const useObrasByResponsavel = (responsavelId: string) => useObraStore((state) => 
+export const useObrasByResponsavelStore = (responsavelId: string) => useObraStore((state) =>
   state.obras.filter(obra => obra.responsavel_id === responsavelId)
 );
 
-export const useObraById = (obraId: string) => useObraStore((state) => 
+export const useObraByIdStore = (obraId: string) => useObraStore((state) =>
   state.obras.find(obra => obra.id === obraId)
 );
 
-export const useFilteredObras = () => useObraStore((state) => {
+export const useFilteredObrasStore = () => useObraStore((state) => {
   let filtered = state.obras;
   
   if (state.filters.status) {
@@ -371,3 +354,6 @@ export const useFilteredObras = () => useObraStore((state) => {
   
   return filtered;
 });
+
+// Exportar o tipo ObraState
+export type { ObraState };

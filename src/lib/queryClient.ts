@@ -1,44 +1,7 @@
-import { QueryClient } from '@tanstack/react-query';
+import { createQueryClient } from './reactQueryConfig';
 
-// Configuração do QueryClient com otimizações para o RDO
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // Cache por 5 minutos por padrão
-      staleTime: 5 * 60 * 1000,
-      // Manter dados em cache por 10 minutos
-      gcTime: 10 * 60 * 1000,
-      // Retry automático em caso de falha
-      retry: (failureCount, error: any) => {
-        // Não retry em erros de autenticação
-        if (error?.status === 401 || error?.status === 403) {
-          return false;
-        }
-        // Máximo 3 tentativas
-        return failureCount < 3;
-      },
-      // Intervalo de retry exponencial
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      // Refetch quando a janela ganha foco
-      refetchOnWindowFocus: true,
-      // Refetch quando reconecta à internet
-      refetchOnReconnect: true,
-      // Não refetch automaticamente quando monta
-      refetchOnMount: false,
-    },
-    mutations: {
-      // Retry para mutations críticas
-      retry: (failureCount, error: any) => {
-        if (error?.status === 401 || error?.status === 403) {
-          return false;
-        }
-        return failureCount < 2;
-      },
-      // Intervalo de retry para mutations
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-    },
-  },
-});
+// Instância otimizada do QueryClient
+export const queryClient = createQueryClient();
 
 // Configurações específicas para diferentes tipos de dados
 export const queryKeys = {
@@ -126,14 +89,70 @@ export const prefetchQueries = {
   },
 };
 
+// Configurações específicas por tipo de dados
+export const dataTypeConfigs = {
+  // Dados estáticos (raramente mudam)
+  static: {
+    staleTime: 60 * 60 * 1000, // 1 hora
+    gcTime: 24 * 60 * 60 * 1000, // 24 horas
+  },
+  // Dados dinâmicos (mudam frequentemente)
+  dynamic: {
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos
+  },
+  // Dados críticos (sempre frescos)
+  critical: {
+    staleTime: 0, // Sempre stale
+    gcTime: 5 * 60 * 1000, // 5 minutos
+  },
+} as const;
+
+// Utilitários para gerenciamento de cache
+export const cacheUtils = {
+  // Limpar cache específico
+  clearCache: (queryKey: string[]) => {
+    queryClient.removeQueries({ queryKey });
+  },
+  
+  // Limpar todo o cache
+  clearAllCache: () => {
+    queryClient.clear();
+  },
+  
+  // Verificar se dados estão em cache
+  hasCache: (queryKey: string[]) => {
+    return queryClient.getQueryData(queryKey) !== undefined;
+  },
+  
+  // Obter dados do cache
+  getCache: <T>(queryKey: string[]): T | undefined => {
+    return queryClient.getQueryData<T>(queryKey);
+  },
+  
+  // Definir dados no cache
+  setCache: <T>(queryKey: string[], data: T) => {
+    queryClient.setQueryData(queryKey, data);
+  },
+};
+
 // Configuração para desenvolvimento
 if (import.meta.env.DEV) {
   // Logs mais detalhados em desenvolvimento
   queryClient.setDefaultOptions({
     queries: {
       ...queryClient.getDefaultOptions().queries,
-      // Refetch mais frequente em dev
-      staleTime: 1 * 60 * 1000, // 1 minuto
+      // Refetch mais frequente em dev para debugging
+      staleTime: 30 * 1000, // 30 segundos
+      // Mostrar dados stale em dev
+      refetchOnMount: true,
     },
+  });
+  
+  // Log de eventos do cache em desenvolvimento
+  queryClient.getQueryCache().subscribe((event) => {
+    if (event?.type === 'updated') {
+      console.debug('Query Cache Updated:', event.query.queryKey);
+    }
   });
 }

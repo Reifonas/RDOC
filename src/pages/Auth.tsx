@@ -5,7 +5,7 @@ import LoginForm from '../components/auth/LoginForm';
 import RegisterForm from '../components/auth/RegisterForm';
 import { supabase } from '../lib/supabase';
 import NeuralNetworkBackground from '../components/NeuralNetworkBackground';
-import tracksteelLogo from '/tracksteel-logo.png';
+import tracksteelLogo from '/tracksteel-logo.png?url';
 
 type AuthMode = 'login' | 'register';
 
@@ -16,9 +16,7 @@ const Auth: React.FC = () => {
   const [mode, setMode] = useState<AuthMode>('login');
   const [logoError, setLogoError] = useState(false);
 
-  // Debug: verificar se o logo está sendo carregado
-  console.debug('Logo path:', tracksteelLogo);
-  console.debug('Logo exists:', !!tracksteelLogo);
+
 
   // Redirecionar se já estiver autenticado
   useEffect(() => {
@@ -100,12 +98,7 @@ const Auth: React.FC = () => {
                 width="160" 
                 height="120" 
                 className="mx-auto drop-shadow-2xl"
-                onLoad={() => console.debug('Logo carregado com sucesso')}
-                onError={(e) => {
-                  console.error('Erro ao carregar logo:', e);
-                  console.error('Src atual:', tracksteelLogo);
-                  setLogoError(true);
-                }}
+onError={() => setLogoError(true)}
               />
             ) : (
               <svg 

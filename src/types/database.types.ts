@@ -51,6 +51,7 @@ export interface Database {
           responsavel_id: string | null
           data_inicio: string | null
           data_prevista_fim: string | null
+          data_conclusao: string | null
           progresso_geral: number
           status: 'ativa' | 'pausada' | 'concluida' | 'cancelada'
           configuracoes: Record<string, any>
@@ -68,6 +69,7 @@ export interface Database {
           responsavel_id?: string | null
           data_inicio?: string | null
           data_prevista_fim?: string | null
+          data_conclusao?: string | null
           progresso_geral?: number
           status?: 'ativa' | 'pausada' | 'concluida' | 'cancelada'
           configuracoes?: Record<string, any>
@@ -85,6 +87,7 @@ export interface Database {
           responsavel_id?: string | null
           data_inicio?: string | null
           data_prevista_fim?: string | null
+          data_conclusao?: string | null
           progresso_geral?: number
           status?: 'ativa' | 'pausada' | 'concluida' | 'cancelada'
           configuracoes?: Record<string, any>
@@ -450,8 +453,16 @@ export type TablesUpdate<T extends keyof Database['public']['Tables']> = Databas
 
 // Tipos específicos das entidades
 export type Usuario = Tables<'usuarios'>
+export type UsuarioInsert = TablesInsert<'usuarios'>
+export type UsuarioUpdate = TablesUpdate<'usuarios'>
+
 export type Obra = Tables<'obras'>
+export type ObraInsert = TablesInsert<'obras'>
+export type ObraUpdate = TablesUpdate<'obras'>
+
 export type RDO = Tables<'rdos'>
+export type RDOInsert = TablesInsert<'rdos'>
+export type RDOUpdate = TablesUpdate<'rdos'>
 export type RDOAtividade = Tables<'rdo_atividades'>
 export type RDOMaoObra = Tables<'rdo_mao_obra'>
 export type RDOEquipamento = Tables<'rdo_equipamentos'>

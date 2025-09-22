@@ -72,7 +72,15 @@ export function validateBRDate(dateBR: string): boolean {
   const parts = dateBR.split('/');
   if (parts.length !== 3) return false;
   
-  const [day, month, year] = parts.map(Number);
+  const dayStr = parts[0];
+  const monthStr = parts[1];
+  const yearStr = parts[2];
+  
+  if (!dayStr || !monthStr || !yearStr) return false;
+  
+  const day = Number(dayStr);
+  const month = Number(monthStr);
+  const year = Number(yearStr);
   
   // Validações básicas
   if (isNaN(day) || isNaN(month) || isNaN(year)) return false;

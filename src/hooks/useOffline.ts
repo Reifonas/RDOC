@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { OfflineManager, offlineDb } from '../lib/offlineDb';
 import { supabase } from '../lib/supabase';
 import { queryKeys, invalidateQueries } from '../lib/queryClient';
-import type { Usuario, Obra, RDO } from '../types/database';
+import type { Usuario, Obra, RDO } from '../types/database.types';
 import type { PendingOperation } from '../lib/offlineDb';
 
 // Hook principal para funcionalidades offline
@@ -83,9 +83,10 @@ export const useOffline = () => {
     switch (table) {
       case 'usuarios':
         if (op === 'create') {
-          await supabase.from('usuarios').insert(data);
+          await (supabase as any).from('usuarios').insert(data);
         } else if (op === 'update') {
-          await supabase.from('usuarios').update(data).eq('id', data.id);
+          const { id, ...updateData } = data;
+          await (supabase as any).from('usuarios').update(updateData).eq('id', id);
         } else if (op === 'delete') {
           await supabase.from('usuarios').delete().eq('id', data.id);
         }
@@ -93,9 +94,10 @@ export const useOffline = () => {
 
       case 'obras':
         if (op === 'create') {
-          await supabase.from('obras').insert(data);
+          await (supabase as any).from('obras').insert(data);
         } else if (op === 'update') {
-          await supabase.from('obras').update(data).eq('id', data.id);
+          const { id, ...updateData } = data;
+          await (supabase as any).from('obras').update(updateData).eq('id', id);
         } else if (op === 'delete') {
           await supabase.from('obras').delete().eq('id', data.id);
         }
@@ -103,9 +105,10 @@ export const useOffline = () => {
 
       case 'rdos':
         if (op === 'create') {
-          await supabase.from('rdos').insert(data);
+          await (supabase as any).from('rdos').insert(data);
         } else if (op === 'update') {
-          await supabase.from('rdos').update(data).eq('id', data.id);
+          const { id, ...updateData } = data;
+          await (supabase as any).from('rdos').update(updateData).eq('id', id);
         } else if (op === 'delete') {
           await supabase.from('rdos').delete().eq('id', data.id);
         }
@@ -421,7 +424,7 @@ export const useOfflineRdos = () => {
 
   const getRdosOffline = useCallback(async (obraId?: string): Promise<RDO[]> => {
     if (obraId) {
-      return await OfflineManager.getCachedData<RDO>('rdos', (rdo: any) => rdo.obra_id === obraId);
+      return await OfflineManager.getCachedData<RDO>('rdos', (rdo: RDO) => rdo.obra_id === obraId);
     }
     return await OfflineManager.getCachedData<RDO>('rdos');
   }, []);
@@ -437,12 +440,17 @@ export const useOfflineRdos = () => {
 
 // Hook para estatísticas offline
 export const useOfflineStats = () => {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<{
+    usuarios: number;
+    obras: number;
+    rdos: number;
+    pendingOperations: number;
+    lastSync?: number;
+  }>({
     usuarios: 0,
     obras: 0,
     rdos: 0,
     pendingOperations: 0,
-    lastSync: undefined as number | undefined,
   });
 
   const loadStats = useCallback(async () => {

@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import type { Usuario, Obra, RDO } from '../types/database';
+import type { Usuario, Obra, RDO } from '../types/database.types';
 
 // Interfaces para dados offline
 export interface OfflineUsuario extends Usuario {
@@ -88,7 +88,8 @@ export class OfflineManager {
       }));
 
       await offlineDb[table].clear();
-      await offlineDb[table].bulkAdd(dataWithSync as any);
+      await offlineDb[table].clear();
+      await (offlineDb[table] as any).bulkAdd(dataWithSync);
       
       console.log(`Cached ${data.length} items in ${table}`);
     } catch (error) {
@@ -102,7 +103,7 @@ export class OfflineManager {
     filter?: (item: T) => boolean
   ): Promise<T[]> {
     try {
-      let query = offlineDb[table].where('_deleted').notEqual(true);
+      let query = offlineDb[table].where('_deleted').notEqual(1);
       const data = await query.toArray();
       
       if (filter) {

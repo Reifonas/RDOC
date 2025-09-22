@@ -4,4 +4,4 @@ export * from './useObras';
 export * from './useRdos';
 
 // Re-exportar utilitários do queryClient
-export { queryKeys, invalidateQueries,
+// export { queryKeys, invalidateQueries } from '../../lib/queryClient'; // Comentado temporariamente

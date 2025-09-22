@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
-import { queryKeys, invalidateQueries } from '../../lib/queryClient';
-import type { Rdo, RdoInsert, RdoUpdate } from '../../types/database';
+// import { queryKeys, invalidateQueries } from '../../lib/queryClient';
+import type { RDO, RDOInsert, RDOUpdate } from '../../types/database.types';
 
 // Hook para buscar todos os RDOs
 export const useRdos = (filters?: {
@@ -13,24 +13,24 @@ export const useRdos = (filters?: {
   search?: string;
 }) => {
   return useQuery({
-    queryKey: queryKeys.rdos.list(filters || {}),
-    queryFn: async (): Promise<Rdo[]> => {
-      let query = supabase
+    queryKey: ['rdos', 'list', filters || {}],
+    queryFn: async (): Promise<RDO[]> => {
+      let query = (supabase as any)
         .from('rdos')
         .select(`
           *,
           obra:obras(id, nome, status),
-          usuario:usuarios(id, nome, email),
+          criador:usuarios!rdos_criado_por_fkey(id, nome, email),
           aprovador:usuarios!rdos_aprovado_por_fkey(id, nome, email)
         `)
-        .order('data', { ascending: false });
+        .order('data_relatorio', { ascending: false });
 
       if (filters?.obra_id) {
         query = query.eq('obra_id', filters.obra_id);
       }
 
       if (filters?.usuario_id) {
-        query = query.eq('usuario_id', filters.usuario_id);
+        query = query.eq('criado_por', filters.usuario_id);
       }
 
       if (filters?.status) {
@@ -38,15 +38,15 @@ export const useRdos = (filters?: {
       }
 
       if (filters?.data_inicio) {
-        query = query.gte('data', filters.data_inicio);
+        query = query.gte('data_relatorio', filters.data_inicio);
       }
 
       if (filters?.data_fim) {
-        query = query.lte('data', filters.data_fim);
+        query = query.lte('data_relatorio', filters.data_fim);
       }
 
       if (filters?.search) {
-        query = query.or(`descricao.ilike.%${filters.search}%,observacoes.ilike.%${filters.search}%`);
+        query = query.or(`observacoes_gerais.ilike.%${filters.search}%`);
       }
 
       const { data, error } = await query;
@@ -64,43 +64,45 @@ export const useRdos = (filters?: {
 // Hook para buscar RDO por ID
 export const useRdo = (id: string | undefined) => {
   return useQuery({
-    queryKey: queryKeys.rdos.detail(id || ''),
-    queryFn: async (): Promise<Rdo | null> => {
+    queryKey: ['rdos', 'detail', id || ''],
+    queryFn: async (): Promise<RDO | null> => {
       if (!id) return null;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('rdos')
         .select(`
           *,
           obra:obras(id, nome, status, endereco),
-          usuario:usuarios(id, nome, email, telefone),
+          criador:usuarios!rdos_criado_por_fkey(id, nome, email, telefone),
           aprovador:usuarios!rdos_aprovado_por_fkey(id, nome, email),
           atividades:rdo_atividades(
             id,
+            tipo_atividade,
             descricao,
-            quantidade,
-            unidade,
-            observacoes
+            percentual_concluido,
+            ordem
           ),
-          materiais:rdo_materiais(
+          mao_obra:rdo_mao_obra(
             id,
-            material,
+            funcao,
             quantidade,
-            unidade,
+            horas_trabalhadas,
             observacoes
           ),
           equipamentos:rdo_equipamentos(
             id,
-            equipamento,
-            horas_uso,
+            nome_equipamento,
+            tipo,
+            horas_utilizadas,
+            combustivel_gasto,
             observacoes
           ),
-          funcionarios:rdo_funcionarios(
+          ocorrencias:rdo_ocorrencias(
             id,
-            nome,
-            funcao,
-            horas_trabalhadas,
-            observacoes
+            tipo_ocorrencia,
+            descricao,
+            gravidade,
+            acao_tomada
           )
         `)
         .eq('id', id)
@@ -123,19 +125,19 @@ export const useRdo = (id: string | undefined) => {
 // Hook para buscar RDOs de uma obra
 export const useObraRdos = (obraId: string | undefined) => {
   return useQuery({
-    queryKey: queryKeys.rdos.byObra(obraId || ''),
-    queryFn: async (): Promise<Rdo[]> => {
+    queryKey: ['rdos', 'byObra', obraId || ''],
+    queryFn: async (): Promise<RDO[]> => {
       if (!obraId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('rdos')
         .select(`
           *,
-          usuario:usuarios(id, nome, email),
+          criador:usuarios!rdos_criado_por_fkey(id, nome, email),
           aprovador:usuarios!rdos_aprovado_por_fkey(id, nome, email)
         `)
         .eq('obra_id', obraId)
-        .order('data', { ascending: false });
+        .order('data_relatorio', { ascending: false });
 
       if (error) {
         throw new Error(`Erro ao buscar RDOs da obra: ${error.message}`);
@@ -151,19 +153,19 @@ export const useObraRdos = (obraId: string | undefined) => {
 // Hook para buscar RDOs do usuário
 export const useUserRdos = (userId: string | undefined) => {
   return useQuery({
-    queryKey: queryKeys.rdos.byUser(userId || ''),
-    queryFn: async (): Promise<Rdo[]> => {
+    queryKey: ['rdos', 'byUser', userId || ''],
+    queryFn: async (): Promise<RDO[]> => {
       if (!userId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('rdos')
         .select(`
           *,
           obra:obras(id, nome, status),
           aprovador:usuarios!rdos_aprovado_por_fkey(id, nome, email)
         `)
-        .eq('usuario_id', userId)
-        .order('data', { ascending: false });
+        .eq('criado_por', userId)
+        .order('data_relatorio', { ascending: false });
 
       if (error) {
         throw new Error(`Erro ao buscar RDOs do usuário: ${error.message}`);
@@ -181,14 +183,14 @@ export const useCreateRdo = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (rdoData: RdoInsert): Promise<Rdo> => {
-      const { data, error } = await supabase
+    mutationFn: async (rdoData: RDOInsert): Promise<RDO> => {
+      const { data, error } = await (supabase as any)
         .from('rdos')
         .insert(rdoData)
         .select(`
           *,
           obra:obras(id, nome, status),
-          usuario:usuarios(id, nome, email)
+          criador:usuarios!rdos_criado_por_fkey(id, nome, email)
         `)
         .single();
 
@@ -200,23 +202,23 @@ export const useCreateRdo = () => {
     },
     onSuccess: (newRdo) => {
       // Invalidar cache de RDOs
-      invalidateQueries.rdos();
+      queryClient.invalidateQueries({ queryKey: ['rdos'] });
       
       // Adicionar o novo RDO ao cache
       queryClient.setQueryData(
-        queryKeys.rdos.detail(newRdo.id),
+        ['rdos', 'detail', newRdo.id],
         newRdo
       );
 
       // Invalidar RDOs da obra
       if (newRdo.obra_id) {
-        invalidateQueries.rdosByObra(newRdo.obra_id);
+        queryClient.invalidateQueries({ queryKey: ['rdos', 'byObra', newRdo.obra_id] });
       }
 
       // Invalidar RDOs do usuário
-      if (newRdo.usuario_id) {
+      if (newRdo.criado_por) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.rdos.byUser(newRdo.usuario_id)
+          queryKey: ['rdos', 'byUser', newRdo.criado_por]
         });
       }
     },
@@ -231,15 +233,15 @@ export const useUpdateRdo = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: RdoUpdate }): Promise<Rdo> => {
-      const { data, error } = await supabase
+    mutationFn: async ({ id, updates }: { id: string; updates: RDOUpdate }): Promise<RDO> => {
+      const { data, error } = await (supabase as any)
         .from('rdos')
         .update(updates)
         .eq('id', id)
         .select(`
           *,
           obra:obras(id, nome, status),
-          usuario:usuarios(id, nome, email),
+          criador:usuarios!rdos_criado_por_fkey(id, nome, email),
           aprovador:usuarios!rdos_aprovado_por_fkey(id, nome, email)
         `)
         .single();
@@ -252,23 +254,23 @@ export const useUpdateRdo = () => {
     },
     onSuccess: (updatedRdo) => {
       // Invalidar cache de RDOs
-      invalidateQueries.rdos();
+      queryClient.invalidateQueries({ queryKey: ['rdos'] });
       
       // Atualizar o RDO específico no cache
       queryClient.setQueryData(
-        queryKeys.rdos.detail(updatedRdo.id),
+        ['rdos', 'detail', updatedRdo.id],
         updatedRdo
       );
 
       // Invalidar RDOs da obra
       if (updatedRdo.obra_id) {
-        invalidateQueries.rdosByObra(updatedRdo.obra_id);
+        queryClient.invalidateQueries({ queryKey: ['rdos', 'byObra', updatedRdo.obra_id] });
       }
 
       // Invalidar RDOs do usuário
-      if (updatedRdo.usuario_id) {
+      if (updatedRdo.criado_por) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.rdos.byUser(updatedRdo.usuario_id)
+          queryKey: ['rdos', 'byUser', updatedRdo.criado_por]
         });
       }
     },
@@ -293,22 +295,21 @@ export const useApproveRdo = () => {
       status: 'aprovado' | 'rejeitado'; 
       aprovadoPor: string;
       observacoesAprovacao?: string;
-    }): Promise<Rdo> => {
-      const updates: RdoUpdate = {
+    }): Promise<RDO> => {
+      const updates = {
         status,
         aprovado_por: aprovadoPor,
-        data_aprovacao: new Date().toISOString(),
-        observacoes_aprovacao: observacoesAprovacao,
+        aprovado_em: new Date().toISOString(),
       };
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('rdos')
         .update(updates)
         .eq('id', id)
         .select(`
           *,
           obra:obras(id, nome, status),
-          usuario:usuarios(id, nome, email),
+          criador:usuarios!rdos_criado_por_fkey(id, nome, email),
           aprovador:usuarios!rdos_aprovado_por_fkey(id, nome, email)
         `)
         .single();
@@ -321,23 +322,23 @@ export const useApproveRdo = () => {
     },
     onSuccess: (updatedRdo) => {
       // Invalidar cache de RDOs
-      invalidateQueries.rdos();
+      queryClient.invalidateQueries({ queryKey: ['rdos'] });
       
       // Atualizar o RDO específico no cache
       queryClient.setQueryData(
-        queryKeys.rdos.detail(updatedRdo.id),
+        ['rdos', 'detail', updatedRdo.id],
         updatedRdo
       );
 
       // Invalidar RDOs da obra
       if (updatedRdo.obra_id) {
-        invalidateQueries.rdosByObra(updatedRdo.obra_id);
+        queryClient.invalidateQueries({ queryKey: ['rdos', 'byObra', updatedRdo.obra_id] });
       }
 
       // Invalidar RDOs do usuário
-      if (updatedRdo.usuario_id) {
+      if (updatedRdo.criado_por) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.rdos.byUser(updatedRdo.usuario_id)
+          queryKey: ['rdos', 'byUser', updatedRdo.criado_por]
         });
       }
     },
@@ -364,11 +365,11 @@ export const useDeleteRdo = () => {
     },
     onSuccess: (_, deletedId) => {
       // Invalidar cache de RDOs
-      invalidateQueries.rdos();
+      queryClient.invalidateQueries({ queryKey: ['rdos'] });
       
       // Remover o RDO específico do cache
       queryClient.removeQueries({
-        queryKey: queryKeys.rdos.detail(deletedId)
+        queryKey: ['rdos', 'detail', deletedId]
       });
     },
     onError: (error) => {
@@ -385,26 +386,26 @@ export const useRdosStats = (filters?: {
   data_fim?: string;
 }) => {
   return useQuery({
-    queryKey: [...queryKeys.rdos.all, 'stats', filters || {}],
+    queryKey: ['rdos', 'all', 'stats', filters || {}],
     queryFn: async () => {
       let query = supabase
         .from('rdos')
-        .select('status, data');
+        .select('status, data_relatorio');
 
       if (filters?.obra_id) {
         query = query.eq('obra_id', filters.obra_id);
       }
 
       if (filters?.usuario_id) {
-        query = query.eq('usuario_id', filters.usuario_id);
+        query = query.eq('criado_por', filters.usuario_id);
       }
 
       if (filters?.data_inicio) {
-        query = query.gte('data', filters.data_inicio);
+        query = query.gte('data_relatorio', filters.data_inicio);
       }
 
       if (filters?.data_fim) {
-        query = query.lte('data', filters.data_fim);
+        query = query.lte('data_relatorio', filters.data_fim);
       }
 
       const { data, error } = await query;
@@ -415,15 +416,15 @@ export const useRdosStats = (filters?: {
 
       const stats = {
         total: data?.length || 0,
-        pendentes: data?.filter(r => r.status === 'pendente').length || 0,
-        aprovados: data?.filter(r => r.status === 'aprovado').length || 0,
-        rejeitados: data?.filter(r => r.status === 'rejeitado').length || 0,
+        pendentes: data?.filter((r: any) => r.status === 'pendente').length || 0,
+        aprovados: data?.filter((r: any) => r.status === 'aprovado').length || 0,
+        rejeitados: data?.filter((r: any) => r.status === 'rejeitado').length || 0,
         por_mes: {} as Record<string, number>,
       };
 
       // Agrupar por mês
-      data?.forEach(rdo => {
-        const mes = new Date(rdo.data).toISOString().substring(0, 7); // YYYY-MM
+      data?.forEach((rdo: any) => {
+        const mes = new Date(rdo.data_relatorio).toISOString().substring(0, 7); // YYYY-MM
         stats.por_mes[mes] = (stats.por_mes[mes] || 0) + 1;
       });
 

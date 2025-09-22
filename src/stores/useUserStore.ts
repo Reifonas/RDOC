@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { Usuario } from '../types/database';
-import { supabase } from '../lib/supabase';
+import type { Usuario } from '../types';
+import { supabase, type Tables, type TablesInsert } from '../lib/supabase';
 
 interface UserState {
   // Estado
@@ -19,8 +19,8 @@ interface UserState {
   // Operações assíncronas
   fetchCurrentUser: (userId: string) => Promise<void>;
   fetchUsers: () => Promise<void>;
-  updateUser: (userId: string, updates: Partial<Usuario>) => Promise<boolean>;
-  createUser: (userData: Omit<Usuario, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  updateUser: (userId: string, updates: Partial<Tables<'usuarios'>>) => Promise<boolean>;
+  createUser: (userData: TablesInsert<'usuarios'>) => Promise<boolean>;
   deleteUser: (userId: string) => Promise<boolean>;
   
   // Utilitários
@@ -35,10 +35,7 @@ const initialState = {
   error: null,
 };
 
-export const useUserStore = create<UserState>()()
-  devtools(
-    persist(
-      (set, get) => ({
+export const useUserStore = create<UserState>()(  devtools(    persist(      (set, get) => ({
         ...initialState,
         
         // Ações síncronas
@@ -104,11 +101,11 @@ export const useUserStore = create<UserState>()()
           }
         },
         
-        updateUser: async (userId: string, updates: Partial<Usuario>) => {
+        updateUser: async (userId: string, updates: Partial<Tables<'usuarios'>>) => {
           try {
             set({ loading: true, error: null }, false, 'updateUser:start');
             
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
               .from('usuarios')
               .update({
                 ...updates,
@@ -147,7 +144,7 @@ export const useUserStore = create<UserState>()()
           try {
             set({ loading: true, error: null }, false, 'createUser:start');
             
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
               .from('usuarios')
               .insert(userData)
               .select()
@@ -212,11 +209,9 @@ export const useUserStore = create<UserState>()()
           users: state.users,
         }),
       }
-    ),
-    {
-      name: 'user-store',
-    }
-  );
+    )
+  )
+);
 
 // Seletores para otimização de performance
 export const useCurrentUser = () => useUserStore((state) => state.currentUser);
@@ -236,3 +231,6 @@ export const useUsersByRole = (role: string) => useUserStore((state) =>
 export const useUserById = (userId: string) => useUserStore((state) => 
   state.users.find(user => user.id === userId)
 );
+
+// Exportar o tipo UserState
+export type { UserState };

@@ -1,174 +1,95 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Dashboard from "@/pages/Dashboard";
-import Cadastros from "@/pages/Cadastros";
-import CreateRDO from "@/pages/CreateRDO";
-import ObraDetails from "@/pages/ObraDetails";
-import RDODetails from "@/pages/RDODetails";
-import Configuracoes from "@/pages/Configuracoes";
-import ObraTasks from "@/pages/ObraTasks";
-import CreateTask from "@/pages/CreateTask";
-import ManualInstrucoes from "@/pages/ManualInstrucoes";
-import Reports from "@/pages/Reports";
-import DatabaseTest from "@/pages/DatabaseTest";
-import Auth from "@/pages/Auth";
 import MainLayout from "@/layouts/MainLayout";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import QueryProvider from "@/providers/QueryProvider";
 import OfflineProvider from "@/providers/OfflineProvider";
+import { routeConfig, routeUtils, type RouteConfig } from "@/config/routes";
+import { useAppStateStore } from "@/stores/useAppStateStore";
+import ErrorBoundary from "@/components/ErrorBoundary";
+
+import { Suspense, useEffect } from 'react';
+
+// Componente de loading para Suspense
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  </div>
+);
+
+// Função para renderizar rotas dinamicamente
+const renderRoute = (route: RouteConfig) => {
+  const Component = route.component;
+  
+  const element = (
+    <Suspense fallback={<PageLoader />}>
+      <ProtectedRoute requireAuth={route.requireAuth}>
+        {route.useLayout ? (
+          <MainLayout>
+            <Component />
+          </MainLayout>
+        ) : (
+          <Component />
+        )}
+      </ProtectedRoute>
+    </Suspense>
+  );
+
+  return (
+    <Route 
+      key={route.path} 
+      path={route.path} 
+      element={element}
+    />
+  );
+};
+
+// Componente interno para usar hooks
+function AppContent() {
+  const { initializeApp, setConnectivity } = useAppStateStore();
+
+  useEffect(() => {
+    // Inicializar estado da aplicação
+    initializeApp();
+
+    // Preload de rotas críticas após inicialização
+    const preloadTimer = setTimeout(() => {
+      routeUtils.preloadRoutes().catch(console.warn);
+    }, 1000); // Delay para não impactar o carregamento inicial
+
+    // Monitorar conectividade
+    const handleOnline = () => setConnectivity(true);
+    const handleOffline = () => setConnectivity(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      clearTimeout(preloadTimer);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [initializeApp, setConnectivity]);
+
+  return (
+    <Routes>
+      {routeConfig.map(renderRoute)}
+    </Routes>
+  );
+}
 
 export default function App() {
   return (
-    <Router>
-      <QueryProvider>
-        <OfflineProvider>
-          <AuthProvider>
-        <Routes>
-          {/* Rotas públicas (não requerem autenticação) */}
-          <Route 
-            path="/login" 
-            element={
-              <ProtectedRoute requireAuth={false}>
-                <Auth />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/register" 
-            element={
-              <ProtectedRoute requireAuth={false}>
-                <Auth />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/cadastro" 
-            element={
-              <ProtectedRoute requireAuth={false}>
-                <Auth />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* Rotas protegidas (requerem autenticação) */}
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoute>
-                <MainLayout><Dashboard /></MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <MainLayout><Dashboard /></MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/cadastros" 
-            element={
-              <ProtectedRoute>
-                <MainLayout><Cadastros /></MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/cadastros/obras" 
-            element={
-              <ProtectedRoute>
-                <MainLayout><Cadastros /></MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/reports" 
-            element={
-              <ProtectedRoute>
-                <MainLayout><Reports /></MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* Rotas sem o layout principal (tela cheia) - protegidas */}
-          <Route 
-            path="/obra/:id" 
-            element={
-              <ProtectedRoute>
-                <ObraDetails />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/obra/:id/tarefas" 
-            element={
-              <ProtectedRoute>
-                <ObraTasks />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/obra/:id/tarefa/nova" 
-            element={
-              <ProtectedRoute>
-                <CreateTask />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/obra/:id/rdo/novo" 
-            element={
-              <ProtectedRoute>
-                <CreateRDO />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/obra/:obraId/rdo/:rdoId" 
-            element={
-              <ProtectedRoute>
-                <RDODetails />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/rdo/novo" 
-            element={
-              <ProtectedRoute>
-                <CreateRDO />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/configuracoes" 
-            element={
-              <ProtectedRoute>
-                <Configuracoes />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/manual" 
-            element={
-              <ProtectedRoute>
-                <ManualInstrucoes />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/database-test" 
-            element={
-              <ProtectedRoute>
-                <MainLayout><DatabaseTest /></MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-        </Routes>
-          </AuthProvider>
-        </OfflineProvider>
-      </QueryProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <QueryProvider>
+          <OfflineProvider>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </OfflineProvider>
+        </QueryProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }

@@ -1,8 +1,8 @@
-// Exportar todos os stores
-export { useUserStore, useCurrentUser, useUsers, useUserLoading, useUserError, useActiveUsers, useUsersByRole, useUserById } from './useUserStore';
-export { useObraStore, useObras, useCurrentObra, useObraLoading, useObraError, useObraFilters, useObrasByStatus, useObrasByResponsavel, useObraById, useFilteredObras } from './useObraStore';
-export { useTaskStore, useTasks, useCurrentTask, useTaskLoading, useTaskError, useTaskFilters, useTasksByStatus, useTasksByPrioridade, useTasksByResponsavel, useTasksByObra, useTaskById, useOverdueTasks, useFilteredTasks } from './useTaskStore';
-export { useAppStore, useIsOnline, useIsLoading, useTheme, useLanguage, useNotifications, useSettings, useSyncStatus, useLastSync, useUnreadNotifications, useNotificationsByType, useIsSyncing, useHasSyncError } from './useAppStore';
+// Exportar stores principais
+export { useUserStore } from './useUserStore';
+export { useObraStore } from './useObraStore';
+export { useTaskStore } from './useTaskStore';
+export { useAppStore } from './useAppStore';
 
 // Tipos para os stores
 export type { UserState } from './useUserStore';
@@ -16,14 +16,15 @@ import { useUserStore } from './useUserStore';
 import { useObraStore } from './useObraStore';
 import { useTaskStore } from './useTaskStore';
 import { useAppStore } from './useAppStore';
-import { useAuthContext } from '../contexts/AuthContext';
+// import { useAuthContext } from '../contexts/AuthContext'; // Comentado temporariamente
 
 /**
  * Hook para inicializar todos os stores da aplicação
  * Deve ser usado no componente raiz da aplicação
  */
 export const useInitializeStores = () => {
-  const { user } = useAuthContext();
+  // const { user } = useAuthContext(); // Comentado temporariamente
+  const user = null; // Placeholder
   const { fetchUsers } = useUserStore();
   const { fetchObras } = useObraStore();
   const { fetchTasks } = useTaskStore();
@@ -105,15 +106,15 @@ export const useSyncAllData = () => {
  * Hook para obter estatísticas gerais da aplicação
  */
 export const useAppStats = () => {
-  const users = useUsers();
-  const obras = useObras();
-  const tasks = useTasks();
+  const { users } = useUserStore();
+  const { obras } = useObraStore();
+  const { tasks } = useTaskStore();
   
   return {
     totalUsers: users.length,
     activeUsers: users.filter(u => u.ativo).length,
     totalObras: obras.length,
-    obrasEmAndamento: obras.filter(o => o.status === 'em_andamento').length,
+    obrasEmAndamento: obras.filter(o => o.status === 'ativa').length,
     totalTasks: tasks.length,
     tasksPendentes: tasks.filter(t => t.status === 'pendente').length,
     tasksEmAndamento: tasks.filter(t => t.status === 'em_andamento').length,
@@ -130,12 +131,17 @@ export const useAppStats = () => {
  */
 export const useDashboardData = () => {
   const stats = useAppStats();
-  const recentTasks = useTasks().slice(0, 5); // 5 tarefas mais recentes
-  const recentObras = useObras().slice(0, 5); // 5 obras mais recentes
-  const notifications = useUnreadNotifications();
+  const { tasks: allTasks } = useTaskStore();
+  const { obras: allObras } = useObraStore();
+  const { notifications } = useAppStore();
+  const recentTasks = allTasks.slice(0, 5); // 5 tarefas mais recentes
+  const recentObras = allObras.slice(0, 5); // 5 obras mais recentes
+  const unreadNotifications = notifications.filter(n => !n.read);
   
   return {
     stats,
     recentTasks,
     recentObras,
-    notifications: notifications.slice(0, 10), // 10 notificações mais recentes
+    notifications: unreadNotifications.slice(0, 10), // 10 notificações mais recentes
+  };
+};

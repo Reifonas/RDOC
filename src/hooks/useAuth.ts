@@ -99,7 +99,7 @@ export const useAuth = () => {
             nome: user.user_metadata?.nome || user.email?.split('@')[0] || 'Usuário',
             role: 'usuario',
             ativo: true
-          });
+          } as any);
 
         if (insertError) {
           console.error('Erro ao criar perfil do usuário:', insertError);
@@ -216,7 +216,7 @@ export const useAuth = () => {
       if (authError) throw authError;
 
       // Atualizar tabela usuarios
-      const { error: dbError } = await supabase
+      const { error: dbError } = await (supabase as any)
         .from('usuarios')
         .update(updates)
         .eq('id', authState.user.id);

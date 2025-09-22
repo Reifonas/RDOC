@@ -1,0 +1,44 @@
+{
+  "repository": {
+    "remote_url": "https://github.com/Reifonas/TS_RDO.git",
+    "branch": "main",
+    "auto_push": true
+  },
+  "monitoring": {
+    "watch_interval": 30,
+    "continuous_mode": false,
+    "verbose_logging": true
+  },
+  "backup": {
+    "enabled": true,
+    "retention_days": 3,
+    "exclude_patterns": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      "logs",
+      "backups",
+      ".env.local",
+      "*.log",
+      ".trae",
+      "android",
+      "ios"
+    ]
+  },
+  "logging": {
+    "enabled": true,
+    "retention_days": 7,
+    "log_level": "INFO"
+  },
+  "git": {
+    "auto_commit_message_template": "Auto-sync: {timestamp} - {changes}",
+    "pull_before_push": true,
+    "use_rebase": true
+  },
+  "notifications": {
+    "enabled": true,
+    "success_notifications": false,
+    "error_notifications": true
+  }
+}

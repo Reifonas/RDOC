@@ -48,7 +48,7 @@ export const useUsersRealtime = () => {
 };
 
 // Hook para sincronização em tempo real de obras
-export const useObrasRealtime = () => {
+export const useObrasRealtimeSync = () => {
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
 
@@ -92,7 +92,7 @@ export const useObrasRealtime = () => {
 };
 
 // Hook para sincronização em tempo real de RDOs
-export const useRdosRealtime = (obraId?: string) => {
+export const useRdosRealtimeSync = (obraId?: string) => {
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
 
@@ -164,8 +164,8 @@ export const useRealtimeSync = (options?: {
   } = options || {};
 
   const usersChannel = useUsersRealtime();
-  const obrasChannel = useObrasRealtime();
-  const rdosChannel = useRdosRealtime(obraId);
+  const obrasChannel = useObrasRealtimeSync();
+  const rdosChannel = useRdosRealtimeSync(obraId);
 
   // Retornar status das conexões
   return {

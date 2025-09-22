@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { useConfigStore } from '../stores/configStore';
-import type { ConfigItem, CondicaoClimatica } from '../stores/configStore';
+// import { useConfigStore } from '../stores/configStore';
+// import type { ConfigItem, CondicaoClimatica } from '../stores/configStore';
 
 /**
  * Hook para carregar dados do Supabase e sincronizar com as stores locais
@@ -10,7 +10,7 @@ export const useSupabaseData = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const configStore = useConfigStore();
+  // const configStore = useConfigStore();
 
   // Carregar tipos de atividade do Supabase
   const loadTiposAtividade = async () => {
@@ -30,18 +30,18 @@ export const useSupabaseData = () => {
       console.log('✅ Tipos de atividade carregados:', data);
       
       // Converter dados do Supabase para o formato da store
-      const tiposAtividade: ConfigItem[] = data?.map((item, index) => ({
-        id: item.id.toString(),
-        nome: item.nome,
-        ativo: item.ativo,
-        ordem: index + 1
-      })) || [];
+      // const tiposAtividade: ConfigItem[] = data?.map((item, index) => ({
+      //   id: item.id.toString(),
+      //   nome: item.nome,
+      //   ativo: item.ativo,
+      //   ordem: index + 1
+      // })) || [];
 
       // Atualizar store com dados do Supabase
-      configStore.tiposAtividade = tiposAtividade;
-      console.log('📊 Store atualizada com tipos de atividade:', tiposAtividade);
+      // configStore.tiposAtividade = tiposAtividade;
+      console.log('📊 Tipos de atividade carregados:', data);
       
-      return tiposAtividade;
+      return data || [];
     } catch (err) {
       console.error('❌ Erro ao carregar tipos de atividade:', err);
       throw err;
@@ -66,20 +66,20 @@ export const useSupabaseData = () => {
       console.log('✅ Condições climáticas carregadas:', data);
       
       // Converter dados do Supabase para o formato da store
-      const condicoesClimaticas: CondicaoClimatica[] = data?.map((item, index) => ({
-        id: item.id.toString(),
-        nome: item.nome,
-        valor: item.valor || item.nome.toLowerCase().replace(/\s+/g, '_'),
-        ativo: item.ativo,
-        ordem: index + 1,
-        descricao: item.descricao
-      })) || [];
+      // const condicoesClimaticas: CondicaoClimatica[] = data?.map((item, index) => ({
+      //   id: item.id.toString(),
+      //   nome: item.nome,
+      //   valor: item.valor || item.nome.toLowerCase().replace(/\s+/g, '_'),
+      //   ativo: item.ativo,
+      //   ordem: index + 1,
+      //   descricao: item.descricao
+      // })) || [];
 
       // Atualizar store com dados do Supabase
-      configStore.condicoesClimaticas = condicoesClimaticas;
-      console.log('📊 Store atualizada com condições climáticas:', condicoesClimaticas);
+      // configStore.condicoesClimaticas = condicoesClimaticas;
+      console.log('📊 Condições climáticas carregadas:', data);
       
-      return condicoesClimaticas;
+      return data || [];
     } catch (err) {
       console.error('❌ Erro ao carregar condições climáticas:', err);
       throw err;

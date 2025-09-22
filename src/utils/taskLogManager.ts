@@ -63,8 +63,8 @@ export class TaskLogManager {
       type,
       timestamp: now,
       usuario,
-      descricao,
-      detalhes
+      ...(descricao !== undefined && { descricao }),
+      ...(detalhes !== undefined && { detalhes })
     };
 
     // Adicionar evento ao log
@@ -123,22 +123,31 @@ export class TaskLogManager {
     usuario?: string,
     observacoes?: string
   ): void {
+    const detalhes: TaskLogEvent['detalhes'] = {
+      camposAlterados,
+      ...(observacoes !== undefined && { observacoes })
+    };
+    
     this.addEvent(
       taskId, 
       'edicao', 
       usuario, 
       `Tarefa editada: ${camposAlterados.join(', ')}`,
-      { camposAlterados, observacoes }
+      detalhes
     );
   }
 
   public logTaskCancel(taskId: string, usuario?: string, motivo?: string): void {
+    const detalhes: TaskLogEvent['detalhes'] = motivo !== undefined 
+      ? { observacoes: motivo }
+      : undefined;
+      
     this.addEvent(
       taskId, 
       'cancelamento', 
       usuario, 
       'Tarefa cancelada',
-      { observacoes: motivo }
+      detalhes
     );
   }
 

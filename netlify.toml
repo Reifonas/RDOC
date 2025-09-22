@@ -1,6 +1,6 @@
 [build]
   # Comando para build da aplicação
-  command = "pnpm run build"
+  command = "npm run build"
   # Diretório onde ficam os arquivos buildados
   publish = "dist"
   # Ignorar cache do node_modules para builds mais limpos
@@ -9,7 +9,7 @@
 [build.environment]
   # Versão do Node.js atualizada
   NODE_VERSION = "22"
-  # Usar pnpm como package manager
+  # Usar npm como package manager
   NPM_FLAGS = "--version"
   # Otimizações de build
   NODE_ENV = "production"
@@ -68,18 +68,18 @@
 
 # Configurações para preview de branches
 [context.branch-deploy]
-  command = "pnpm run build"
+  command = "npm run build"
   [context.branch-deploy.environment]
     NODE_ENV = "production"
 
 [context.deploy-preview]
-  command = "pnpm run build"
+  command = "npm run build"
   [context.deploy-preview.environment]
     NODE_ENV = "production"
 
 # Configurações de produção
 [context.production]
-  command = "pnpm run build"
+  command = "npm run build"
   [context.production.environment]
     NODE_ENV = "production"
     GENERATE_SOURCEMAP = "false"

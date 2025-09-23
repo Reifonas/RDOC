@@ -43,29 +43,27 @@
     "tailwind-merge": "^3.0.2",
     "zod": "^3.22.4",
     "zustand": "^5.0.3",
-    "@dyad-sh/react-vite-component-tagger": "^0.0.1",
-    "@vitejs/plugin-react": "^4.3.1",
-    "typescript": "^5.2.2",
-    "vite": "^5.3.4",
-    "vite-plugin-trae-solo-badge": "^0.0.1",
-    "vite-tsconfig-paths": "^5.0.1"
+    "vite": "^6.3.5",
+    "@vitejs/plugin-react": "^4.4.1",
+    "typescript": "~5.8.3"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.0.0",
+    "@dyad-sh/react-vite-component-tagger": "^0.8.0",
     "@eslint/js": "^9.25.0",
     "@types/node": "^22.15.30",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@typescript-eslint/eslint-plugin": "^7.15.0",
-    "@typescript-eslint/parser": "^7.15.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.21",
     "babel-plugin-react-dev-locator": "^1.0.0",
-    "eslint": "^8.57.0",
-    "eslint-plugin-react-hooks": "^4.6.2",
-    "eslint-plugin-react-refresh": "^0.4.7",
+    "eslint": "^9.25.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
-    "typescript-eslint": "^8.30.1"
+    "typescript-eslint": "^8.30.1",
+    "vite-plugin-trae-solo-badge": "^1.0.0",
+    "vite-tsconfig-paths": "^5.1.4"
   }
 }

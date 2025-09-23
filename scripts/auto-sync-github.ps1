@@ -14,12 +14,12 @@ param(
 # Configurações
 $ProjectPath = Split-Path -Parent $PSScriptRoot
 $LogPath = Join-Path $ProjectPath "logs"
-$BackupPath = Join-Path $ProjectPath "backups"
+
 $ConfigPath = Join-Path $ProjectPath "auto-sync-config.json"
 
 # Criar diretórios necessários
 if (!(Test-Path $LogPath)) { New-Item -ItemType Directory -Path $LogPath -Force }
-if (!(Test-Path $BackupPath)) { New-Item -ItemType Directory -Path $BackupPath -Force }
+
 
 # Função de logging
 function Write-Log {
@@ -81,33 +81,7 @@ function Test-HasChanges {
     }
 }
 
-# Função para criar backup
-function New-Backup {
-    try {
-        $backupName = "backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
-        $backupFullPath = Join-Path $BackupPath $backupName
-        
-        # Criar backup excluindo node_modules, .git, dist, etc.
-        $excludePatterns = @(
-            "node_modules",
-            ".git",
-            "dist",
-            "build",
-            "logs",
-            "backups",
-            ".env.local",
-            "*.log"
-        )
-        
-        robocopy $ProjectPath $backupFullPath /E /XD $excludePatterns /XF $excludePatterns /NFL /NDL /NJH /NJS
-        
-        Write-Log "Backup criado: $backupName" "SUCCESS"
-        return $backupFullPath
-    } catch {
-        Write-Log "Erro ao criar backup: $($_.Exception.Message)" "ERROR"
-        return $null
-    }
-}
+
 
 # Função para gerar mensagem de commit automática
 function Get-AutoCommitMessage {
@@ -130,7 +104,7 @@ function Get-AutoCommitMessage {
 
 # Função principal de sincronização
 function Sync-WithGitHub {
-    param([bool]$CreateBackup = $true)
+    param([bool]$CreateBackup = $false)
     
     Write-Log "Iniciando sincronização com GitHub..." "INFO"
     
@@ -149,13 +123,7 @@ function Sync-WithGitHub {
     }
     
     try {
-        # Criar backup se solicitado
-        if ($CreateBackup) {
-            $backup = New-Backup
-            if (!$backup) {
-                Write-Log "Falha ao criar backup. Continuando sem backup..." "WARN"
-            }
-        }
+
         
         # Fazer pull das mudanças remotas
         Write-Log "Fazendo pull das mudanças remotas..." "INFO"
@@ -180,8 +148,8 @@ function Sync-WithGitHub {
     } catch {
         Write-Log "Erro durante sincronização: $($_.Exception.Message)" "ERROR"
         
-        # Tentar rollback se houver backup
-        if ($backup -and (Test-Path $backup)) {
+        # Log do erro para análise
+        if ($false) {
             Write-Log "Tentando rollback..." "WARN"
             try {
                 git reset --hard HEAD~1 2>$null
@@ -244,22 +212,7 @@ function Clear-OldLogs {
     }
 }
 
-# Função para limpar backups antigos
-function Clear-OldBackups {
-    param([int]$DaysToKeep = 3)
-    
-    try {
-        $cutoffDate = (Get-Date).AddDays(-$DaysToKeep)
-        $oldBackups = Get-ChildItem -Path $BackupPath -Directory | Where-Object { $_.LastWriteTime -lt $cutoffDate }
-        
-        foreach ($backup in $oldBackups) {
-            Remove-Item $backup.FullName -Recurse -Force
-            Write-Log "Backup antigo removido: $($backup.Name)" "INFO"
-        }
-    } catch {
-        Write-Log "Erro ao limpar backups antigos: $($_.Exception.Message)" "ERROR"
-    }
-}
+
 
 # Execução principal
 function Main {
@@ -273,7 +226,7 @@ function Main {
     
     # Limpar arquivos antigos
     Clear-OldLogs
-    Clear-OldBackups
+
     
     if ($ContinuousMode) {
         Start-ContinuousSync

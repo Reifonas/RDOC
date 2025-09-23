@@ -76,7 +76,7 @@ $script:LogEmojis = @{
     ERROR = "❌"
     FATAL = "💀"
     SUCCESS = "✅"
-    BACKUP = "💾"
+    
     SYNC = "🔄"
     DEPLOY = "🚀"
     GIT = "📝"
@@ -460,10 +460,7 @@ function Write-GitLog {
     Write-LogEntry -Level $Level -Message $Message -Category "Git" -Context $Context
 }
 
-function Write-BackupLog {
-    param([string]$Level, [string]$Message, [hashtable]$Context = @{})
-    Write-LogEntry -Level $Level -Message $Message -Category "Backup" -Context $Context
-}
+
 
 function Write-SyncLog {
     param([string]$Level, [string]$Message, [hashtable]$Context = @{})
@@ -564,8 +561,7 @@ function Get-LogAnalysis {
 Export-ModuleMember -Function @(
     'Initialize-LoggingSystem',
     'Write-LogEntry',
-    'Write-GitLog',
-    'Write-BackupLog', 
+    'Write-GitLog', 
     'Write-SyncLog',
     'Write-DeployLog',
     'Write-WatchLog',

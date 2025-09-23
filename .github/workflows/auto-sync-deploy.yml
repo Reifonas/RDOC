@@ -132,7 +132,7 @@ jobs:
           rsync -av --exclude='node_modules' \
                    --exclude='.git' \
                    --exclude='logs' \
-                   --exclude='backups' \
+       
                    --exclude='.env.local' \
                    --exclude='*.log' \
                    --exclude='.trae' \

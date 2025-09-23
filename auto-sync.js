@@ -34,7 +34,7 @@ const CONFIG = {
         '!dist/**',
         '!build/**',
         '!logs/**',
-        '!backups/**',
+    
         '!*.log',
         '!.env.local'
     ]

@@ -50,7 +50,7 @@ O sistema monitora todos os arquivos do projeto, **excluindo**:
 - `dist/`
 - `build/`
 - `logs/`
-- `backups/`
+
 - `*.log`
 - `.env.local`
 

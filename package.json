@@ -43,7 +43,6 @@
     "tailwind-merge": "^3.0.2",
     "zod": "^3.22.4",
     "zustand": "^5.0.3",
-    "@dyad-sh/react-vite-component-tagger": "^0.0.1",
     "@vitejs/plugin-react": "^4.3.1",
     "typescript": "^5.2.2",
     "vite": "^5.3.4",

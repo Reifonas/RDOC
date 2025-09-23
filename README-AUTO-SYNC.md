@@ -8,7 +8,7 @@ Sistema completo de automação para sincronização automática com o repositó
 - ✅ **GitHub Actions**: Deploy automático no repositório remoto
 - ✅ **Git Hooks**: Automação local com validações
 - ✅ **Monitoramento de Arquivos**: Watch em tempo real das mudanças
-- ✅ **Sistema de Backup**: Backup automático com rollback
+
 - ✅ **Logs Detalhados**: Sistema completo de logging e notificações
 - ✅ **Interface Unificada**: Script principal para gerenciar tudo
 
@@ -82,12 +82,7 @@ Edite o arquivo `auto-sync-config.json`:
     "file_watch_enabled": true,
     "excluded_patterns": ["node_modules", ".git", "logs", "temp"]
   },
-  "backup": {
-    "enabled": true,
-    "interval": 3600,
-    "max_backups": 10,
-    "compress": true
-  },
+
   "logging": {
     "level": "INFO",
     "console_enabled": true,
@@ -127,11 +122,11 @@ Edite o arquivo `logging-config.json` para configurar notificações:
 # Iniciar com configurações padrão
 .\scripts\start-auto-sync.ps1 -Action start
 
-# Iniciar com backup habilitado
-.\scripts\start-auto-sync.ps1 -Action start -EnableBackup
+# Iniciar sistema
+.\scripts\start-auto-sync.ps1 -Action start
 
 # Iniciar com todas as funcionalidades
-.\scripts\start-auto-sync.ps1 -Action start -EnableBackup -EnableNotifications -EnableFileWatch
+.\scripts\start-auto-sync.ps1 -Action start -EnableNotifications -EnableFileWatch
 ```
 
 #### Parar Sistema
@@ -141,7 +136,7 @@ Edite o arquivo `logging-config.json` para configurar notificações:
 
 #### Reiniciar Sistema
 ```powershell
-.\scripts\start-auto-sync.ps1 -Action restart -EnableBackup -EnableNotifications
+.\scripts\start-auto-sync.ps1 -Action restart -EnableNotifications
 ```
 
 #### Verificar Status
@@ -153,7 +148,7 @@ Edite o arquivo `logging-config.json` para configurar notificações:
 
 ```powershell
 # Configurar intervalos personalizados
-.\scripts\start-auto-sync.ps1 -Action start -SyncInterval 180 -BackupInterval 1800
+.\scripts\start-auto-sync.ps1 -Action start -SyncInterval 180
 
 # Modo verbose para debug
 .\scripts\start-auto-sync.ps1 -Action start -Verbose
@@ -173,18 +168,14 @@ RDO-C/
 │   ├── start-auto-sync.ps1      # Script principal
 │   ├── auto-sync-github.ps1     # Sincronização Git
 │   ├── file-watcher.ps1         # Monitoramento de arquivos
-│   ├── backup-rollback.ps1      # Sistema de backup
+
 │   ├── logging-notifications.ps1 # Logs e notificações
 │   └── setup-git-hooks.ps1      # Configuração de hooks
 ├── .github/
 │   ├── workflows/
 │   │   └── auto-sync-deploy.yml # GitHub Action
 │   └── SECRETS_SETUP.md         # Configuração de secrets
-├── .git/hooks/
-│   ├── pre-commit               # Hook pré-commit
-│   └── post-commit              # Hook pós-commit
 ├── logs/                        # Arquivos de log
-├── backups/                     # Backups automáticos
 ├── temp/                        # Arquivos temporários
 ├── auto-sync-config.json        # Configuração principal
 ├── logging-config.json          # Configuração de logs
@@ -205,19 +196,7 @@ RDO-C/
 .\scripts\auto-sync-github.ps1 -AutoCommit -Push
 ```
 
-### 2. Backup Manual
-```powershell
-# Criar backup
-.\scripts\backup-rollback.ps1 -Action backup -BackupName "meu_backup"
-
-# Listar backups
-.\scripts\backup-rollback.ps1 -Action list
-
-# Restaurar backup
-.\scripts\backup-rollback.ps1 -Action restore -BackupName "meu_backup"
-```
-
-### 3. Monitoramento de Arquivos
+### 2. Monitoramento de Arquivos
 ```powershell
 # Monitoramento contínuo
 .\scripts\file-watcher.ps1 -Continuous
@@ -255,7 +234,7 @@ tail -f logs/auto-sync-$(Get-Date -Format 'yyyyMMdd').log
 Habilitadas por padrão no Windows. Mostra:
 - ✅ Sincronizações bem-sucedidas
 - ❌ Erros de sincronização
-- 💾 Backups criados
+
 - ⚠️ Avisos importantes
 
 ### Notificações por Email
@@ -352,10 +331,8 @@ Get-Content logs\auto-sync-$(Get-Date -Format 'yyyyMMdd').log | Select-String "E
 
 ### Métricas Disponíveis
 - Número de sincronizações
-- Número de backups
 - Número de erros
 - Tempo de última sincronização
-- Tempo de último backup
 - Status do sistema
 
 ### Visualizar Estatísticas
@@ -370,18 +347,14 @@ Get-Content auto-sync-status.json | ConvertFrom-Json
 ## 🔄 Atualizações e Manutenção
 
 ### Atualizar Sistema
-1. Faça backup das configurações
-2. Pare o sistema: `start-auto-sync.ps1 -Action stop`
-3. Atualize os scripts
-4. Reinicie: `start-auto-sync.ps1 -Action restart`
+1. Pare o sistema: `start-auto-sync.ps1 -Action stop`
+2. Atualize os scripts
+3. Reinicie: `start-auto-sync.ps1 -Action restart`
 
 ### Limpeza de Logs
 ```powershell
 # Limpar logs antigos (mais de 30 dias)
 Get-ChildItem logs\*.log | Where-Object {$_.LastWriteTime -lt (Get-Date).AddDays(-30)} | Remove-Item
-
-# Limpar backups antigos
-.\scripts\backup-rollback.ps1 -Action cleanup -KeepDays 30
 ```
 
 ### Backup de Configuração
@@ -414,7 +387,7 @@ Get-Content logs\auto-sync-$(Get-Date -Format 'yyyyMMdd').log | Select-Object -L
 - ✅ Sistema completo de auto-sync
 - ✅ GitHub Actions integradas
 - ✅ Git Hooks configurados
-- ✅ Sistema de backup e rollback
+
 - ✅ Monitoramento de arquivos
 - ✅ Logs detalhados e notificações
 - ✅ Interface unificada de gerenciamento
@@ -426,5 +399,5 @@ Get-Content logs\auto-sync-$(Get-Date -Format 'yyyyMMdd').log | Select-Object -L
 Para começar:
 ```powershell
 .\scripts\start-auto-sync.ps1 -Action setup
-.\scripts\start-auto-sync.ps1 -Action start -EnableBackup -EnableNotifications
+.\scripts\start-auto-sync.ps1 -Action start -EnableNotifications
 ```

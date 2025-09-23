@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tsconfigPaths from "vite-tsconfig-paths";
-import dyadComponentTagger from '@dyad-sh/react-vite-component-tagger';
 
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
@@ -91,7 +90,6 @@ export default defineConfig(({ command, mode }) => {
       'tailwind-merge'
     ],
     exclude: [
-      '@dyad-sh/react-vite-component-tagger',
       '@tanstack/react-query-devtools' // Excluir devtools em produção
     ],
     force: process.env.FORCE_OPTIMIZE === 'true'
@@ -104,7 +102,6 @@ export default defineConfig(({ command, mode }) => {
   },
   
   plugins: [
-    dyadComponentTagger(),
     react(),
     tsconfigPaths(),
   ],

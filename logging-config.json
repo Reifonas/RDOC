@@ -60,7 +60,7 @@
   "Filters": {
     "MinLevel": "INFO",
     "ExcludeCategories": [],
-    "IncludeCategories": ["Git", "Backup", "Sync", "Deploy", "FileWatch", "System"],
+    "IncludeCategories": ["Git", "Sync", "Deploy", "FileWatch", "System"],
     "ExcludeSources": []
   },
   

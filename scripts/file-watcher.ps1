@@ -1,9 +1,9 @@
 # Sistema de Monitoramento de Arquivos para RDO-C
 # Monitora mudanças em tempo real e executa ações automáticas
-# Uso: .\scripts\file-watcher.ps1 [-Action <sync|backup|notify>] [-Interval <seconds>]
+# Uso: .\scripts\file-watcher.ps1 [-Action <sync|notify>] [-Interval <seconds>]
 
 param(
-    [string]$Action = "sync",  # sync, backup, notify, all
+    [string]$Action = "sync",  # sync, notify, all
     [int]$Interval = 5,        # Intervalo em segundos para verificação
     [string]$ConfigFile = "auto-sync-config.json",
     [switch]$Daemon,           # Executar como daemon
@@ -85,19 +85,15 @@ function Create-DefaultConfig {
             enabled = $true
             interval_seconds = 5
             watch_patterns = @("*.ts", "*.tsx", "*.js", "*.jsx", "*.json", "*.md", "*.yml", "*.yaml")
-            ignore_patterns = @("node_modules/**", "dist/**", "build/**", ".git/**", "logs/**", "backups/**")
+            ignore_patterns = @("node_modules/**", "dist/**", "build/**", ".git/**", "logs/**")
             directories = @("src", "public", ".github", "scripts")
         }
         actions = @{
-            on_change = @("backup", "sync")
+            on_change = @("sync")
             on_error = @("log", "notify")
             debounce_ms = 2000
         }
-        backup = @{
-            enabled = $true
-            max_backups = 10
-            compress = $true
-        }
+
         notifications = @{
             enabled = $true
             methods = @("console", "file")
@@ -126,7 +122,7 @@ function Initialize-Watcher {
     }
     
     # Criar diretórios necessários
-    $dirs = @("logs", "backups", "temp")
+    $dirs = @("logs", "temp")
     foreach ($dir in $dirs) {
         if (-not (Test-Path $dir)) {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
@@ -149,7 +145,7 @@ function Initialize-Stats {
             start_time = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
             total_changes = 0
             total_syncs = 0
-            total_backups = 0
+
             last_change = $null
             last_sync = $null
             errors = 0
@@ -179,9 +175,7 @@ function Update-Stats {
                 $stats.total_syncs++
                 $stats.last_sync = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             }
-            "backup" {
-                $stats.total_backups++
-            }
+
             "error" {
                 $stats.errors++
             }
@@ -273,11 +267,7 @@ function Invoke-ChangeActions {
     
     foreach ($actionType in $actions) {
         switch ($actionType) {
-            "backup" {
-                if ($script:Config.backup.enabled) {
-                    Start-Backup -FilePath $FilePath
-                }
-            }
+
             "sync" {
                 if ($script:Config.repository.auto_push) {
                     Start-Sync
@@ -290,35 +280,7 @@ function Invoke-ChangeActions {
     }
 }
 
-# Criar backup
-function Start-Backup {
-    param([string]$FilePath)
-    
-    try {
-        $backupDir = "backups\watcher\$(Get-Date -Format 'yyyyMMdd')"
-        if (-not (Test-Path $backupDir)) {
-            New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
-        }
-        
-        if (Test-Path $FilePath) {
-            $relativePath = Resolve-Path $FilePath -Relative
-            $backupPath = Join-Path $backupDir $relativePath
-            $backupParent = Split-Path $backupPath -Parent
-            
-            if (-not (Test-Path $backupParent)) {
-                New-Item -ItemType Directory -Path $backupParent -Force | Out-Null
-            }
-            
-            Copy-Item $FilePath $backupPath -Force
-            Write-Log "Backup criado: $backupPath" "info" "Green"
-            
-            Update-Stats -Event "backup"
-        }
-    } catch {
-        Write-Log "Erro ao criar backup: $($_.Exception.Message)" "error" "Red"
-        Update-Stats -Event "error"
-    }
-}
+
 
 # Sincronizar com repositório
 function Start-Sync {
@@ -417,7 +379,7 @@ function Show-Stats {
         Write-Host "Uptime: $([math]::Round($stats.uptime_seconds / 3600, 2)) horas" -ForegroundColor White
         Write-Host "Total de mudanças: $($stats.total_changes)" -ForegroundColor Green
         Write-Host "Total de sincronizações: $($stats.total_syncs)" -ForegroundColor Green
-        Write-Host "Total de backups: $($stats.total_backups)" -ForegroundColor Green
+
         Write-Host "Erros: $($stats.errors)" -ForegroundColor $(if ($stats.errors -gt 0) { "Red" } else { "Green" })
         
         if ($stats.last_change) {

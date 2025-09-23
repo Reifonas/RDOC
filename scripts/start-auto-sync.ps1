@@ -1,12 +1,12 @@
 # Script Principal - Sistema de Auto-Sync RDO-C
-# Integra todos os componentes: sync, backup, logs, notificações e monitoramento
+# Integra todos os componentes: sync, logs, notificações e monitoramento
 # Uso: .\scripts\start-auto-sync.ps1 [opções]
 
 param(
     [ValidateSet("start", "stop", "restart", "status", "setup", "test")]
     [string]$Action = "start",
     
-    [switch]$EnableBackup,
+
     [switch]$EnableNotifications,
     [switch]$EnableFileWatch,
     [switch]$Verbose,
@@ -14,7 +14,7 @@ param(
     [switch]$Force,
     
     [int]$SyncInterval = 300,  # 5 minutos
-    [int]$BackupInterval = 3600,  # 1 hora
+
     [string]$ConfigFile = "auto-sync-config.json",
     [string]$LogLevel = "INFO"
 )
@@ -37,10 +37,8 @@ $script:AutoSyncConfig = @{
     StartTime = $null
     ProcessId = $null
     SyncCount = 0
-    BackupCount = 0
     ErrorCount = 0
     LastSync = $null
-    LastBackup = $null
     StatusFile = "auto-sync-status.json"
     PidFile = "auto-sync.pid"
 }
@@ -126,7 +124,7 @@ function Initialize-Environment {
     }
     
     # Criar diretórios necessários
-    $directories = @("logs", "backups", "temp", "scripts")
+    $directories = @("logs", "temp", "scripts")
     foreach ($dir in $directories) {
         if (-not (Test-Path $dir)) {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
@@ -150,15 +148,13 @@ function Save-SystemStatus {
         start_time = $script:AutoSyncConfig.StartTime
         process_id = $script:AutoSyncConfig.ProcessId
         sync_count = $script:AutoSyncConfig.SyncCount
-        backup_count = $script:AutoSyncConfig.BackupCount
         error_count = $script:AutoSyncConfig.ErrorCount
         last_sync = $script:AutoSyncConfig.LastSync
-        last_backup = $script:AutoSyncConfig.LastBackup
         last_update = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         config_file = $ConfigFile
         log_level = $LogLevel
         features = @{
-            backup_enabled = $EnableBackup
+
             notifications_enabled = $EnableNotifications
             file_watch_enabled = $EnableFileWatch
         }
@@ -233,37 +229,7 @@ function Invoke-AutoSync {
     }
 }
 
-# Executar backup
-function Invoke-AutoBackup {
-    if (-not $EnableBackup) {
-        return $true
-    }
-    
-    Write-LogEntry "INFO" "Iniciando backup automático..." "Backup"
-    
-    try {
-        if (Test-Path "$scriptDir\backup-rollback.ps1") {
-            $backupName = "auto_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
-            $backupResult = & "$scriptDir\backup-rollback.ps1" -Action backup -BackupName $backupName -Description "Backup automático" -Compress
-            
-            if ($backupResult) {
-                $script:AutoSyncConfig.BackupCount++
-                $script:AutoSyncConfig.LastBackup = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                Write-LogEntry "SUCCESS" "Backup criado com sucesso: $backupName" "Backup" @{ name = $backupName }
-                return $true
-            } else {
-                Write-LogEntry "ERROR" "Falha ao criar backup" "Backup"
-                return $false
-            }
-        } else {
-            Write-LogEntry "ERROR" "Script de backup não encontrado" "Backup"
-            return $false
-        }
-    } catch {
-        Write-LogEntry "ERROR" "Erro durante backup: $($_.Exception.Message)" "Backup"
-        return $false
-    }
-}
+
 
 # Loop principal de monitoramento
 function Start-AutoSyncLoop {
@@ -274,7 +240,7 @@ function Start-AutoSyncLoop {
     $script:AutoSyncConfig.ProcessId = $PID
     
     $lastSyncTime = Get-Date
-    $lastBackupTime = Get-Date
+
     
     # Iniciar file watcher se habilitado
     $fileWatcherJob = $null
@@ -300,11 +266,7 @@ function Start-AutoSyncLoop {
                 $lastSyncTime = $currentTime
             }
             
-            # Verificar se é hora de fazer backup
-            if ($EnableBackup -and ($currentTime - $lastBackupTime).TotalSeconds -ge $BackupInterval) {
-                Invoke-AutoBackup
-                $lastBackupTime = $currentTime
-            }
+
             
             # Aguardar antes da próxima verificação
             Start-Sleep -Seconds 30
@@ -389,20 +351,18 @@ function Show-SystemStatus {
         Write-Host ""
         Write-Host "📊 Estatísticas:" -ForegroundColor Yellow
         Write-Host "  Sincronizações: $($status.sync_count)" -ForegroundColor White
-        Write-Host "  Backups: $($status.backup_count)" -ForegroundColor White
+
         Write-Host "  Erros: $($status.error_count)" -ForegroundColor White
         
         if ($status.last_sync) {
             Write-Host "  Última sincronização: $($status.last_sync)" -ForegroundColor White
         }
         
-        if ($status.last_backup) {
-            Write-Host "  Último backup: $($status.last_backup)" -ForegroundColor White
-        }
+
         
         Write-Host ""
         Write-Host "⚙️ Configurações:" -ForegroundColor Yellow
-        Write-Host "  Backup habilitado: $($status.features.backup_enabled)" -ForegroundColor White
+
         Write-Host "  Notificações habilitadas: $($status.features.notifications_enabled)" -ForegroundColor White
         Write-Host "  Monitoramento de arquivos: $($status.features.file_watch_enabled)" -ForegroundColor White
         
@@ -423,12 +383,12 @@ function Test-AutoSyncSystem {
         @{ Name = "Ambiente Git"; Test = { Test-Path ".git" } },
         @{ Name = "Scripts"; Test = { 
             (Test-Path "$scriptDir\auto-sync-github.ps1") -and
-            (Test-Path "$scriptDir\backup-rollback.ps1") -and
+    
             (Test-Path "$scriptDir\file-watcher.ps1")
         }},
         @{ Name = "Configuração"; Test = { Test-Path $ConfigFile } },
         @{ Name = "Diretórios"; Test = { 
-            (Test-Path "logs") -and (Test-Path "backups") -and (Test-Path "temp")
+            (Test-Path "logs") -and (Test-Path "temp")
         }}
     )
     

@@ -9,23 +9,7 @@
     "continuous_mode": false,
     "verbose_logging": true
   },
-  "backup": {
-    "enabled": true,
-    "retention_days": 3,
-    "exclude_patterns": [
-      "node_modules",
-      ".git",
-      "dist",
-      "build",
-      "logs",
-      "backups",
-      ".env.local",
-      "*.log",
-      ".trae",
-      "android",
-      "ios"
-    ]
-  },
+
   "logging": {
     "enabled": true,
     "retention_days": 7,

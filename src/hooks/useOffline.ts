@@ -11,29 +11,6 @@ export const useOffline = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>([]);
-  const queryClient = useQueryClient();
-
-  // Monitorar status de conectividade
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      console.log('Conexão restaurada - iniciando sincronização');
-      syncPendingOperations();
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      console.log('Conexão perdida - modo offline ativado');
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
 
   // Carregar operações pendentes
   const loadPendingOperations = useCallback(async () => {
@@ -74,7 +51,7 @@ export const useOffline = () => {
     } finally {
       setIsSyncing(false);
     }
-  }, [isOnline, isSyncing]);
+  }, [isOnline, isSyncing, loadPendingOperations]);
 
   // Processar uma operação pendente
   const processPendingOperation = async (operation: PendingOperation) => {
@@ -83,9 +60,11 @@ export const useOffline = () => {
     switch (table) {
       case 'usuarios':
         if (op === 'create') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any).from('usuarios').insert(data);
         } else if (op === 'update') {
           const { id, ...updateData } = data;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any).from('usuarios').update(updateData).eq('id', id);
         } else if (op === 'delete') {
           await supabase.from('usuarios').delete().eq('id', data.id);
@@ -94,9 +73,11 @@ export const useOffline = () => {
 
       case 'obras':
         if (op === 'create') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any).from('obras').insert(data);
         } else if (op === 'update') {
           const { id, ...updateData } = data;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any).from('obras').update(updateData).eq('id', id);
         } else if (op === 'delete') {
           await supabase.from('obras').delete().eq('id', data.id);
@@ -105,9 +86,11 @@ export const useOffline = () => {
 
       case 'rdos':
         if (op === 'create') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any).from('rdos').insert(data);
         } else if (op === 'update') {
           const { id, ...updateData } = data;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any).from('rdos').update(updateData).eq('id', id);
         } else if (op === 'delete') {
           await supabase.from('rdos').delete().eq('id', data.id);
@@ -165,6 +148,28 @@ export const useOffline = () => {
       console.error('Error caching data for offline:', error);
     }
   }, [isOnline]);
+
+  // Monitorar status de conectividade
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      console.log('Conexão restaurada - iniciando sincronização');
+      syncPendingOperations();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      console.log('Conexão perdida - modo offline ativado');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [syncPendingOperations]);
 
   // Inicializar na montagem
   useEffect(() => {

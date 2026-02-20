@@ -1,0 +1,81 @@
+{
+  "LogDirectory": "logs",
+  "MaxLogSize": 10485760,
+  "MaxLogFiles": 10,
+  "LogLevels": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL", "SUCCESS"],
+  "DateFormat": "yyyy-MM-dd HH:mm:ss.fff",
+  "EnableConsole": true,
+  "EnableFile": true,
+  "EnableNotifications": true,
+  "NotificationTypes": ["desktop", "slack", "discord"],
+  
+  "NotificationConfig": {
+    "Desktop": {
+      "Enabled": true,
+      "ShowSuccess": false,
+      "ShowWarning": true,
+      "ShowError": true,
+      "Duration": 5000
+    },
+    "Email": {
+      "Enabled": false,
+      "SmtpServer": "smtp.gmail.com",
+      "Port": 587,
+      "Username": "",
+      "Password": "",
+      "From": "",
+      "To": [],
+      "Subject": "RDO-C Auto-Sync Notification"
+    },
+    "Webhook": {
+      "Enabled": false,
+      "Url": "",
+      "Method": "POST",
+      "Headers": {},
+      "AuthToken": ""
+    },
+    "Slack": {
+      "Enabled": false,
+      "WebhookUrl": "",
+      "Channel": "#dev-notifications",
+      "Username": "RDO-C Bot",
+      "IconEmoji": ":robot_face:"
+    },
+    "Discord": {
+      "Enabled": false,
+      "WebhookUrl": "",
+      "Username": "RDO-C Auto-Sync",
+      "AvatarUrl": ""
+    }
+  },
+  
+  "LogRotation": {
+    "Enabled": true,
+    "MaxSize": "10MB",
+    "MaxFiles": 10,
+    "CompressOld": true,
+    "DeleteAfterDays": 30
+  },
+  
+  "Filters": {
+    "MinLevel": "INFO",
+    "ExcludeCategories": [],
+    "IncludeCategories": ["Git", "Sync", "Deploy", "FileWatch", "System"],
+    "ExcludeSources": []
+  },
+  
+  "Performance": {
+    "AsyncLogging": true,
+    "BufferSize": 1000,
+    "FlushInterval": 5000,
+    "MaxMemoryUsage": "50MB"
+  },
+  
+  "Monitoring": {
+    "EnableHealthCheck": true,
+    "HealthCheckInterval": 300000,
+    "AlertOnErrors": true,
+    "ErrorThreshold": 10,
+    "TimeWindow": 3600000
+  }
+}

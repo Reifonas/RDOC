@@ -1,0 +1,112 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║   🔗 CONECTAR AO SUPABASE RDO - INSTRUÇÕES RÁPIDAS           ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+PASSO 1: OBTER CREDENCIAIS (2 minutos)
+═══════════════════════════════════════════════════════════════
+
+1. Acesse: https://supabase.com/dashboard
+2. Selecione o projeto "RDO"
+3. Clique em: Settings (engrenagem) → API
+4. Copie:
+   - Project URL (https://...supabase.co)
+   - Anon public key (eyJhbGciOi...)
+
+PASSO 2: CONECTAR (5 minutos)
+═══════════════════════════════════════════════════════════════
+
+Opção A - AUTOMÁTICO (Recomendado):
+   node setup-supabase.js
+   
+   Siga as instruções na tela
+
+Opção B - MANUAL:
+   1. Abra o arquivo: .env
+   2. Substitua:
+      VITE_SUPABASE_URL=[URL que copiou]
+      VITE_SUPABASE_ANON_KEY=[Anon Key que copiou]
+   3. Salve (Ctrl+S)
+
+PASSO 3: VERIFICAR CONEXÃO (2 minutos)
+═══════════════════════════════════════════════════════════════
+
+   node check-supabase-status.js
+
+   Resultado esperado:
+   ✅ Conexão estabelecida
+   📊 Banco vazio (normal)
+
+PASSO 4: APLICAR MIGRATIONS (5 minutos)
+═══════════════════════════════════════════════════════════════
+
+   supabase link --project-ref [seu-project-id]
+   
+   Quando pedir senha:
+   - Acesse: https://supabase.com/dashboard/project/[seu-project-id]/settings/database
+   - Copie a "Database Password"
+   - Cole no terminal
+
+   Depois:
+   supabase db push
+
+   Resultado esperado:
+   ✅ 16 tabelas criadas
+   ✅ RLS habilitado
+   ✅ Funções e triggers funcionando
+
+PASSO 5: VERIFICAR NOVAMENTE (2 minutos)
+═══════════════════════════════════════════════════════════════
+
+   node check-supabase-status.js
+
+   Resultado esperado:
+   ✅ 16 tabelas criadas
+   ✅ RLS habilitado em todas
+   ✅ Banco de dados: POPULADO
+
+PASSO 6: INICIAR DESENVOLVIMENTO (1 minuto)
+═══════════════════════════════════════════════════════════════
+
+   npm run dev
+
+   Abra: http://localhost:5173
+
+═══════════════════════════════════════════════════════════════
+
+TEMPO TOTAL: ~20 minutos
+
+PRÓXIMO PASSO: Abra o arquivo COMECE_AQUI.md
+
+═══════════════════════════════════════════════════════════════
+
+DOCUMENTAÇÃO:
+- PROXIMOS_PASSOS.md ........... Resumo dos próximos passos
+- SETUP_VISUAL.md .............. Guia visual com screenshots
+- CONECTAR_SUPABASE_RDO.md ..... Guia detalhado
+- RESUMO_EXECUTIVO_CONEXAO.md .. Resumo executivo
+
+═══════════════════════════════════════════════════════════════
+
+PROBLEMAS?
+
+"Erro de conexão"
+→ Verifique se as credenciais estão corretas
+→ Execute: node check-supabase-status.js
+
+"Projeto não encontrado"
+→ Verifique o project-ref
+→ Acesse: Settings → General → Project ID
+
+"Erro ao aplicar migrations"
+→ Verifique a senha do banco
+→ Acesse: Settings → Database → Database Password
+
+═══════════════════════════════════════════════════════════════
+
+COMECE AGORA:
+
+   node setup-supabase.js
+
+═══════════════════════════════════════════════════════════════

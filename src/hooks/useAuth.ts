@@ -248,7 +248,8 @@ export const useAuth = () => {
             nome: credentials.nome,
             cpf: credentials.cpf,
             telefone: credentials.telefone
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
 

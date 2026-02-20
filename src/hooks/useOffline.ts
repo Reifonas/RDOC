@@ -48,7 +48,7 @@ export const useOffline = () => {
     setIsSyncing(true);
     try {
       const operations = await OfflineManager.getPendingOperations();
-      
+
       for (const operation of operations) {
         try {
           await processPendingOperation(operation);
@@ -61,13 +61,13 @@ export const useOffline = () => {
           );
         }
       }
-      
+
       // Recarregar operações pendentes
       await loadPendingOperations();
-      
+
       // Invalidar queries para atualizar dados
       invalidateQueries.all();
-      
+
       console.log('Sincronização concluída');
     } catch (error) {
       console.error('Error syncing pending operations:', error);
@@ -121,12 +121,16 @@ export const useOffline = () => {
     if (!isOnline) return;
 
     try {
+      // Prevenir 401 chamando o cache apenas se o usuário estiver logado
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
       // Cache usuários
       const { data: usuarios } = await supabase
         .from('usuarios')
         .select('*')
         .eq('ativo', true);
-      
+
       if (usuarios) {
         await OfflineManager.cacheData('usuarios', usuarios);
       }
@@ -135,7 +139,7 @@ export const useOffline = () => {
       const { data: obras } = await supabase
         .from('obras')
         .select('*');
-      
+
       if (obras) {
         await OfflineManager.cacheData('obras', obras);
       }
@@ -143,19 +147,19 @@ export const useOffline = () => {
       // Cache RDOs (últimos 30 dias)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
+
       const { data: rdos } = await supabase
         .from('rdos')
         .select('*')
         .gte('created_at', thirtyDaysAgo.toISOString());
-      
+
       if (rdos) {
         await OfflineManager.cacheData('rdos', rdos);
       }
 
       // Salvar timestamp da última sincronização
       await OfflineManager.setConfig('lastFullSync', Date.now());
-      
+
       console.log('Dados cacheados para uso offline');
     } catch (error) {
       console.error('Error caching data for offline:', error);
@@ -460,10 +464,10 @@ export const useOfflineStats = () => {
 
   useEffect(() => {
     loadStats();
-    
+
     // Atualizar estatísticas a cada 30 segundos
     const interval = setInterval(loadStats, 30000);
-    
+
     return () => clearInterval(interval);
   }, [loadStats]);
 

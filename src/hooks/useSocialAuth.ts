@@ -25,6 +25,18 @@ export const useSocialAuth = () => {
             setLoading(true);
             setError(null);
 
+            // CRÍTICO: Limpar qualquer sessão antiga do localStorage antes de iniciar o OAuth.
+            // Sem isso, o Supabase SDK tenta validar o token antigo na página de callback
+            // e retorna 401 (GET /auth/v1/user) antes mesmo do nosso código rodar.
+            await supabase.auth.signOut({ scope: 'local' });
+
+            // Limpar manualmente chaves residuais que possam conflitar
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('sb-') && key.includes(window.location.hostname === 'localhost' ? 'localhost' : 'xzudfhifaancyxxfdejx')) {
+                    localStorage.removeItem(key);
+                }
+            });
+
             const { data, error: authError } = await supabase.auth.signInWithOAuth({
                 provider,
                 options: {

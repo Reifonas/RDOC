@@ -179,10 +179,10 @@ export const deleteFile = async (bucket: string, path: string) => {
 // Configuração de real-time para diferentes tabelas
 export const subscribeToTable = <T extends keyof Database['public']['Tables']>(
   table: T,
-  callback: (payload: any) => void,
+  callback: (payload: Record<string, unknown>) => void,
   filter?: string
 ) => {
-  let channel = supabase
+  const channel = supabase
     .channel(`public:${table}`)
     .on(
       'postgres_changes',
@@ -204,7 +204,7 @@ export const subscribeToTable = <T extends keyof Database['public']['Tables']>(
 // Função para verificar conexão com o banco
 export const testConnection = async () => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('usuarios')
       .select('count')
       .limit(1)

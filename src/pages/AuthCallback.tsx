@@ -15,13 +15,6 @@ export const AuthCallback: React.FC = () => {
     useEffect(() => {
         console.log('🔄 AuthCallback montado.');
 
-        // 1. Iniciar o timer de redirecionamento
-        const timer = setTimeout(() => {
-            console.log('⏰ Timeout disparado. Forçando ida para /');
-            window.location.href = '/';
-        }, 4000);
-
-        // 2. Processar sessão e garantir permissões do Super Admin
         const processSession = async () => {
             try {
                 console.log('🔍 Verificando sessão em background...');
@@ -45,15 +38,22 @@ export const AuthCallback: React.FC = () => {
                         console.log('👑 Permissões de Super Admin aplicadas!');
                     }
 
-                    // Redirecionar
-                    window.location.href = '/';
+                    // Redirecionar imediatamente
+                    window.location.replace('/');
+                } else {
+                    // Sem sessão (ainda processando ou erro), esperar um pouco e tentar dnv ou ir para login
+                    setTimeout(() => window.location.replace('/login'), 5000);
                 }
             } catch (e) {
                 console.error('⚠️ Erro na verificação de sessão:', e);
+                window.location.replace('/login');
             }
         };
 
-        processSession();
+        // Adiciona um pequeno delay para garantir que o supabase-js processou a URL (implicit / pkce hash)
+        const timer = setTimeout(() => {
+            processSession();
+        }, 800);
 
         return () => clearTimeout(timer);
     }, [navigate]);

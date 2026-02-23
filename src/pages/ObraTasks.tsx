@@ -126,19 +126,29 @@ export default function ObraTasks() {
   }, [id]);
 
   const fetchTasks = async (obraId: string) => {
-    // Validate UUID format
+    // Check if ID is provided
+    if (!obraId) {
+      console.error('ID da obra não fornecido');
+      setIsLoading(false);
+      return;
+    }
+
+    // Previne erro 400 Bad Request no Supabase: UUID inválido não deve ser buscado.
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(obraId)) {
-      console.error('ID da obra inválido:', obraId);
+      console.warn('ID da obra não é um UUID padrão. Ignorando busca no banco.');
+      setTasks([]);
       setIsLoading(false);
+      // Aqui você poderia setar um 'obraInfo' mock se este for o ID '1' de testes
+      if (obraId === '1') setObraInfo({ nome: 'Obra de Demonstração' });
       return;
     }
 
     setIsLoading(true);
     try {
       // Fetch Tasks
-      const { data: tasksData, error: tasksError } = await (supabase
-        .from('tarefas') as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: tasksData, error: tasksError } = await (supabase.from('tarefas') as any)
         .select(`
                   id,
                   titulo,
@@ -165,26 +175,30 @@ export default function ObraTasks() {
       if (tasksError) {
         console.error('Erro ao buscar tarefas:', tasksError);
       } else {
-        const mappedTasks: Task[] = tasksData.map((t: any) => ({
-          id: t.id,
-          titulo: t.titulo,
-          descricao: t.descricao || '',
-          obra_id: t.obra_id,
-          obra_nome: t.obra?.nome,
-          responsavel: t.responsavel_user?.nome || 'Não definido', // Use joined name
-          responsavel_id: t.responsavel_id,
-          prioridade: t.prioridade as any,
-          status: t.status as any,
-          data_inicio: t.data_inicio || '',
-          data_prazo: t.data_fim || '', // Mapping data_fim to data_prazo
-          progresso: Number(t.progresso) || 0,
-          tempo_estimado: t.metadados?.tempo_estimado || 0,
-          tempo_trabalhado: t.metadados?.tempo_trabalhado || 0,
-          categoria: t.metadados?.categoria || 'Geral',
-          localizacao: t.metadados?.localizacao,
-          anexos: t.metadados?.anexos_count || 0,
-          comentarios: t.metadados?.comentarios_count || 0
-        }));
+        const mappedTasks: Task[] = tasksData.map((t: Record<string, unknown> | null | undefined) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const taskData = t as Record<string, any>;
+          return {
+            id: taskData.id as string,
+            titulo: taskData.titulo as string,
+            descricao: (taskData.descricao as string) || '',
+            obra_id: taskData.obra_id as string,
+            obra_nome: taskData.obra?.nome as string | undefined,
+            responsavel: taskData.responsavel_user?.nome || 'Não definido',
+            responsavel_id: taskData.responsavel_id as string | undefined,
+            prioridade: taskData.prioridade as Task['prioridade'],
+            status: taskData.status as Task['status'],
+            data_inicio: (taskData.data_inicio as string) || '',
+            data_prazo: (taskData.data_fim as string) || '',
+            progresso: Number(taskData.progresso) || 0,
+            tempo_estimado: taskData.metadados?.tempo_estimado || 0,
+            tempo_trabalhado: taskData.metadados?.tempo_trabalhado || 0,
+            categoria: taskData.metadados?.categoria || 'Geral',
+            localizacao: taskData.metadados?.localizacao,
+            anexos: taskData.metadados?.anexos_count || 0,
+            comentarios: taskData.metadados?.comentarios_count || 0
+          };
+        });
         setTasks(mappedTasks);
 
         if (tasksData.length > 0) {
@@ -227,8 +241,8 @@ export default function ObraTasks() {
       ));
 
       try {
-        const { error } = await (supabase
-          .from('tarefas') as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.from('tarefas') as any)
           .update({ status: newStatus })
           .eq('id', taskId);
 
@@ -271,18 +285,15 @@ export default function ObraTasks() {
     addTaskLogEvent(updatedTask.id, 'edit', 'Tarefa editada');
 
     try {
-      const { error } = await (supabase
-        .from('tarefas') as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from('tarefas') as any)
         .update({
           titulo: updatedTask.titulo,
           descricao: updatedTask.descricao,
           status: updatedTask.status,
           prioridade: updatedTask.prioridade,
           progresso: updatedTask.progresso,
-          // We update metadados if fields stored there changed?
-          // For simplicity only updating main fields here.
-          // If responsavel changed, we are not updating ID, so it is just name change                  // Real impl needs to update responsavel_id.
-        } as any)
+        })
         .eq('id', updatedTask.id);
 
       if (error) throw error;
@@ -307,8 +318,8 @@ export default function ObraTasks() {
       setShowDeleteModal(false);
 
       try {
-        const { error } = await (supabase
-          .from('tarefas') as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.from('tarefas') as any)
           .delete()
           .eq('id', taskToDelete);
 
@@ -378,6 +389,7 @@ export default function ObraTasks() {
 
           <div className="relative">
             <button
+              title="Opções da Tarefa"
               onClick={() => setSelectedTask(selectedTask === task.id ? null : task.id)}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
@@ -555,7 +567,7 @@ export default function ObraTasks() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <Link
-                to={/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || '') ? `/obra/${id}` : '/cadastros/obras'}
+                to={id && id !== '1' ? `/obra/${id}` : '/cadastros/obras'}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
@@ -620,6 +632,7 @@ export default function ObraTasks() {
                       Status
                     </label>
                     <select
+                      title="Filtrar por Status"
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
                       className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white"
@@ -638,6 +651,7 @@ export default function ObraTasks() {
                       Prioridade
                     </label>
                     <select
+                      title="Filtrar por Prioridade"
                       value={prioridadeFilter}
                       onChange={(e) => setPrioridadeFilter(e.target.value)}
                       className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white"
@@ -773,6 +787,7 @@ export default function ObraTasks() {
                   </div>
                 </div>
                 <button
+                  title="Fechar Modal"
                   onClick={() => setShowEditModal(false)}
                   className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
@@ -787,6 +802,8 @@ export default function ObraTasks() {
                   </label>
                   <input
                     type="text"
+                    title="Título da Tarefa"
+                    placeholder="Título da Tarefa"
                     value={editFormData.titulo || ''}
                     onChange={(e) => setEditFormData({ ...editFormData, titulo: e.target.value })}
                     className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
@@ -799,6 +816,8 @@ export default function ObraTasks() {
                   </label>
                   <textarea
                     rows={3}
+                    title="Descrição da Tarefa"
+                    placeholder="Descrição da Tarefa"
                     value={editFormData.descricao || ''}
                     onChange={(e) => setEditFormData({ ...editFormData, descricao: e.target.value })}
                     className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
@@ -811,8 +830,9 @@ export default function ObraTasks() {
                       Status
                     </label>
                     <select
+                      title="Status da Tarefa"
                       value={editFormData.status || 'pendente'}
-                      onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as any })}
+                      onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as Task['status'] })}
                       className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white"
                     >
                       <option value="pendente">Pendente</option>
@@ -828,8 +848,9 @@ export default function ObraTasks() {
                       Prioridade
                     </label>
                     <select
+                      title="Prioridade da Tarefa"
                       value={editFormData.prioridade || 'media'}
-                      onChange={(e) => setEditFormData({ ...editFormData, prioridade: e.target.value as any })}
+                      onChange={(e) => setEditFormData({ ...editFormData, prioridade: e.target.value as Task['prioridade'] })}
                       className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white"
                     >
                       <option value="baixa">Baixa</option>
@@ -861,6 +882,8 @@ export default function ObraTasks() {
                     </label>
                     <input
                       type="number"
+                      title="Progresso da Tarefa"
+                      placeholder="Progresso da Tarefa"
                       min="0"
                       max="100"
                       value={editFormData.progresso || 0}

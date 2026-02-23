@@ -67,9 +67,14 @@ export const useAuth = () => {
 
           const { useUserStore } = await import('../stores/useUserStore');
           const profilePromise = useUserStore.getState().fetchCurrentUser(session.user.id);
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout fetchCurrentUser')), 15000));
+
+          let timeoutId: ReturnType<typeof setTimeout>;
+          const timeoutPromise = new Promise((_, reject) => {
+            timeoutId = setTimeout(() => reject(new Error('Timeout fetchCurrentUser')), 15000);
+          });
 
           await Promise.race([profilePromise, timeoutPromise]);
+          clearTimeout(timeoutId!);
           console.log('✅ useAuth: Perfil carregado com sucesso');
         } catch (err) {
           console.error('❌ useAuth: Erro/Timeout ao carregar perfil:', err);
@@ -134,8 +139,14 @@ export const useAuth = () => {
 
               if (!currentUser || currentUser.id !== session.user.id) {
                 const profilePromise = useUserStore.getState().fetchCurrentUser(session.user.id);
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout fetchCurrentUser AuthChange')), 15000));
+
+                let timeoutId: ReturnType<typeof setTimeout>;
+                const timeoutPromise = new Promise((_, reject) => {
+                  timeoutId = setTimeout(() => reject(new Error('Timeout fetchCurrentUser AuthChange')), 15000);
+                });
+
                 await Promise.race([profilePromise, timeoutPromise]);
+                clearTimeout(timeoutId!);
               }
             } catch (err) {
               console.error('Erro/Timeout ao sincronizar perfil no AuthChange:', err);
@@ -159,7 +170,10 @@ export const useAuth = () => {
     try {
       console.log('🔄 syncUserProfile: Sincronizando dados:', user.email);
       // Wrapper de timeout para operações de banco
-      const dbTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout syncUserProfile')), 15000));
+      let fetchTimeoutId: ReturnType<typeof setTimeout>;
+      const fetchTimeout = new Promise((_, reject) => {
+        fetchTimeoutId = setTimeout(() => reject(new Error('Timeout syncUserProfile fetch')), 15000);
+      });
 
       // Verificar se o usuário existe na tabela usuarios
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -170,7 +184,8 @@ export const useAuth = () => {
         .single();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: existingUser, error: fetchError } = await Promise.race([fetchPromise, dbTimeout]) as any;
+      const { data: existingUser, error: fetchError } = await Promise.race([fetchPromise, fetchTimeout]) as any;
+      clearTimeout(fetchTimeoutId!);
 
       if (fetchError && fetchError.code !== 'PGRST116') {
         console.error('Erro ao buscar usuário (Sync):', fetchError);
@@ -179,6 +194,11 @@ export const useAuth = () => {
 
       // Se não existe, criar registro na tabela usuarios
       if (!existingUser) {
+        let insertTimeoutId: ReturnType<typeof setTimeout>;
+        const insertTimeout = new Promise((_, reject) => {
+          insertTimeoutId = setTimeout(() => reject(new Error('Timeout syncUserProfile insert')), 15000);
+        });
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const insertPromise = (supabase as any)
           .from('usuarios')
@@ -190,7 +210,8 @@ export const useAuth = () => {
           });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: insertError } = await Promise.race([insertPromise, dbTimeout]) as any;
+        const { error: insertError } = await Promise.race([insertPromise, insertTimeout]) as any;
+        clearTimeout(insertTimeoutId!);
 
         if (insertError) {
           console.error('Erro ao criar perfil do usuário:', insertError);

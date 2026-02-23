@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 // import { useConfigStore } from '../stores/configStore';
 // import type { ConfigItem, CondicaoClimatica } from '../stores/configStore';
@@ -9,11 +9,11 @@ import { supabase } from '../lib/supabase';
 export const useSupabaseData = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // const configStore = useConfigStore();
 
   // Carregar tipos de atividade do Supabase
-  const loadTiposAtividade = async () => {
+  const loadTiposAtividade = useCallback(async () => {
     try {
       console.log('🔄 Carregando tipos de atividade do Supabase...');
       const { data, error } = await supabase
@@ -28,7 +28,7 @@ export const useSupabaseData = () => {
       }
 
       console.log('✅ Tipos de atividade carregados:', data);
-      
+
       // Converter dados do Supabase para o formato da store
       // const tiposAtividade: ConfigItem[] = data?.map((item, index) => ({
       //   id: item.id.toString(),
@@ -40,16 +40,16 @@ export const useSupabaseData = () => {
       // Atualizar store com dados do Supabase
       // configStore.tiposAtividade = tiposAtividade;
       console.log('📊 Tipos de atividade carregados:', data);
-      
+
       return data || [];
     } catch (err) {
       console.error('❌ Erro ao carregar tipos de atividade:', err);
       throw err;
     }
-  };
+  }, []);
 
   // Carregar condições climáticas do Supabase
-  const loadCondicoesClimaticas = async () => {
+  const loadCondicoesClimaticas = useCallback(async () => {
     try {
       console.log('🔄 Carregando condições climáticas do Supabase...');
       const { data, error } = await supabase
@@ -64,7 +64,7 @@ export const useSupabaseData = () => {
       }
 
       console.log('✅ Condições climáticas carregadas:', data);
-      
+
       // Converter dados do Supabase para o formato da store
       // const condicoesClimaticas: CondicaoClimatica[] = data?.map((item, index) => ({
       //   id: item.id.toString(),
@@ -78,20 +78,20 @@ export const useSupabaseData = () => {
       // Atualizar store com dados do Supabase
       // configStore.condicoesClimaticas = condicoesClimaticas;
       console.log('📊 Condições climáticas carregadas:', data);
-      
+
       return data || [];
     } catch (err) {
       console.error('❌ Erro ao carregar condições climáticas:', err);
       throw err;
     }
-  };
+  }, []);
 
   // Carregar funcionários do Supabase
-  const loadFuncionarios = async () => {
+  const loadFuncionarios = useCallback(async () => {
     try {
       console.log('🔄 Carregando funcionários do Supabase...');
       const { data, error } = await supabase
-        .from('funcionarios')
+        .from('usuarios')
         .select('*')
         .eq('ativo', true)
         .order('nome');
@@ -107,10 +107,10 @@ export const useSupabaseData = () => {
       console.error('❌ Erro ao carregar funcionários:', err);
       throw err;
     }
-  };
+  }, []);
 
   // Função principal para carregar todos os dados
-  const loadAllData = async () => {
+  const loadAllData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -130,12 +130,12 @@ export const useSupabaseData = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadTiposAtividade, loadCondicoesClimaticas, loadFuncionarios]);
 
   // Carregar dados automaticamente quando o hook é usado
   useEffect(() => {
     loadAllData();
-  }, []);
+  }, [loadAllData]);
 
   return {
     loading,

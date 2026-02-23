@@ -73,10 +73,17 @@ export default function ObraDetails() {
   }, [id]);
 
   const fetchData = async (obraId: string) => {
-    // Check for valid UUID
+    // Check if ID is provided
+    if (!obraId) {
+      console.error('ID da obra não fornecido');
+      setIsLoading(false);
+      return;
+    }
+
+    // Previne erro 400 Bad Request no Supabase
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(obraId)) {
-      console.error('ID inválido:', obraId);
+      console.warn('ID da obra não é um UUID padrão. Ignorando carregamento dos detalhes.');
       setIsLoading(false);
       return;
     }
@@ -84,7 +91,10 @@ export default function ObraDetails() {
     setIsLoading(true);
     try {
       // Fetch Obra Details from Supabase
-      const { data: obraData, error: obraError } = await (supabase.from('obras') as any).select(`*`).eq('id', obraId).single();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response: { data: any, error: any } = await (supabase.from('obras') as any).select(`*`).eq('id', obraId).single();
+      const obraData = response.data;
+      const obraError = response.error;
 
       if (obraError) {
         console.error('Erro ao buscar obra:', obraError);
@@ -137,14 +147,19 @@ export default function ObraDetails() {
       if (rdosError) {
         console.error('Erro ao buscar RDOs:', rdosError);
       } else {
-        const mappedRdos: RDO[] = rdosData.map((r: any) => ({
-          id: r.id,
-          data: r.data_relatorio,
-          status: r.status,
-          responsavel: r.responsavel?.nome || 'Desconhecido',
-          atividades: r.rdo_atividades?.[0]?.count || 0,
-          ocorrencias: r.rdo_ocorrencias?.[0]?.count || 0
-        }));
+        const mappedRdos: RDO[] = rdosData.map((r: Record<string, unknown> | null) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const rData = r as Record<string, any>;
+          return {
+            id: rData.id as string,
+            data: rData.data_relatorio as string,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            status: rData.status as any,
+            responsavel: rData.responsavel?.nome || 'Desconhecido',
+            atividades: rData.rdo_atividades?.[0]?.count || 0,
+            ocorrencias: rData.rdo_ocorrencias?.[0]?.count || 0
+          };
+        });
         setRdos(mappedRdos);
       }
 
@@ -169,13 +184,17 @@ export default function ObraDetails() {
       if (fotosError) {
         console.error('Erro ao buscar fotos:', fotosError);
       } else {
-        const mappedFotos: Foto[] = fotosData.map((f: any) => ({
-          id: f.id,
-          url: f.url_storage, // This might need getPublicUrl if it's a path
-          data: f.created_at,
-          descricao: f.descricao || f.nome_arquivo,
-          nome_arquivo: f.nome_arquivo
-        }));
+        const mappedFotos: Foto[] = fotosData.map((f: Record<string, unknown> | null) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const fData = f as Record<string, any>;
+          return {
+            id: fData.id as string,
+            url: fData.url_storage as string, // This might need getPublicUrl if it's a path
+            data: fData.created_at as string,
+            descricao: (fData.descricao as string) || (fData.nome_arquivo as string),
+            nome_arquivo: fData.nome_arquivo as string
+          };
+        });
         // If url_storage is a path, we should transform it.
         // Assuming for now it is a signed url or public url if stored that way. 
         // If it is a relative path in bucket, we need `supabase.storage.from(...).getPublicUrl(...)`.
@@ -193,14 +212,16 @@ export default function ObraDetails() {
   const handleSaveObra = async () => {
     if (!editedObra || !obra) return;
     try {
-      const { error } = await (supabase
-        .from('obras') as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response: { error: any } = await (supabase.from('obras') as any)
         .update({
           descricao: editedObra.descricao,
           data_inicio: editedObra.dataInicio,
           data_prevista_fim: editedObra.dataPrevistaFim
         })
         .eq('id', obra.id);
+
+      const error = response.error;
 
       if (error) throw error;
 
@@ -394,12 +415,8 @@ export default function ObraDetails() {
                   <label className="text-sm text-gray-600 dark:text-gray-400">Progresso</label>
                   <div className="flex items-center gap-3">
                     <div className="flex-1 h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500 transition-all duration-500"
-                        /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
-                        // @ts-ignore
-                        style={{ width: `${obra.progresso}%` }}
-                      />
+                      <div className="h-full bg-blue-500 transition-all duration-500 progress-bar-fill" />
+                      <style dangerouslySetInnerHTML={{ __html: `.progress-bar-fill { width: ${obra.progresso}%; }` }} />
                     </div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">{obra.progresso}%</span>
                   </div>

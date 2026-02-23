@@ -41,7 +41,8 @@ export const AuthCallback: React.FC = () => {
                 // Garantir permissões do Super Admin
                 if (session.user.email === 'admtracksteel@gmail.com') {
                     console.log('👑 Super Admin detectado! Atualizando permissões...');
-                    await supabase.from('usuarios' as never).upsert({
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    await (supabase.from('usuarios') as any).upsert({
                         id: session.user.id,
                         email: session.user.email,
                         nome: session.user.user_metadata?.full_name || 'Super Admin',

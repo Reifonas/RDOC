@@ -15,7 +15,7 @@ const CACHE_CONFIG = {
     defaultTTL: 1000 * 60 * 30, // 30 minutos
     maxCacheSize: 50 * 1024 * 1024, // 50MB
     compressionThreshold: 10 * 1024, // 10KB
-    prefetchTables: ['obras', 'funcionarios', 'tipos_atividade', 'equipamentos']
+    prefetchTables: ['obras', 'usuarios', 'tipos_atividade', 'inventario_equipamentos']
 };
 
 /**

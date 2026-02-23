@@ -16,7 +16,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    flowType: 'pkce'
+    flowType: 'implicit' // Fallback para Implicit Flow evitando bugs do PKCE em domínios customizados
   },
   realtime: {
     params: {

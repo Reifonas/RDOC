@@ -38,18 +38,26 @@ export const AuthCallback: React.FC = () => {
                 clearTimeout(fallbackTimer);
                 setStatus('success');
 
-                // Garantir permissões do Super Admin
-                if (session.user.email === 'admtracksteel@gmail.com') {
-                    console.log('👑 Super Admin detectado! Atualizando permissões...');
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    await (supabase.from('usuarios') as any).upsert({
-                        id: session.user.id,
-                        email: session.user.email,
-                        nome: session.user.user_metadata?.full_name || 'Super Admin',
-                        role: 'dev',
-                        ativo: true
-                    });
-                    console.log('👑 Permissões de Super Admin aplicadas!');
+                // Sincronizar perfil do usuário ANTES de redirecionar
+                try {
+                  console.log('🔄 Sincronizando perfil do usuário...');
+                  
+                  // Importar função de sync
+                  const { useUserStore } = await import('../stores/useUserStore');
+                  
+                  // Aguardar sincronização com timeout
+                  let syncTimeoutId: ReturnType<typeof setTimeout>;
+                  const syncTimeout = new Promise((_, reject) => {
+                    syncTimeoutId = setTimeout(() => reject(new Error('Timeout sync')), 15000);
+                  });
+
+                  const syncPromise = useUserStore.getState().fetchCurrentUser(session.user.id);
+                  await Promise.race([syncPromise, syncTimeout]);
+                  clearTimeout(syncTimeoutId!);
+                  
+                  console.log('✅ Perfil sincronizado com sucesso');
+                } catch (err) {
+                  console.error('⚠️ Erro ao sincronizar perfil (continuando mesmo assim):', err);
                 }
 
                 console.log('✅ Sessão confirmada! Redirecionando para /');

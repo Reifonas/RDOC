@@ -169,7 +169,7 @@ export const useAuth = () => {
   const syncUserProfile = async (user: User) => {
     try {
       console.log('🔄 syncUserProfile: Sincronizando dados:', user.email);
-      // Wrapper de timeout para operações de banco
+      
       let fetchTimeoutId: ReturnType<typeof setTimeout>;
       const fetchTimeout = new Promise((_, reject) => {
         fetchTimeoutId = setTimeout(() => reject(new Error('Timeout syncUserProfile fetch')), 15000);
@@ -192,30 +192,95 @@ export const useAuth = () => {
         return;
       }
 
-      // Se não existe, criar registro na tabela usuarios
+      // Se não existe, criar registro completo
       if (!existingUser) {
-        let insertTimeoutId: ReturnType<typeof setTimeout>;
-        const insertTimeout = new Promise((_, reject) => {
-          insertTimeoutId = setTimeout(() => reject(new Error('Timeout syncUserProfile insert')), 15000);
+        console.log('👤 Novo usuário detectado. Criando registros...');
+        
+        let orgTimeoutId: ReturnType<typeof setTimeout>;
+        const orgTimeout = new Promise((_, reject) => {
+          orgTimeoutId = setTimeout(() => reject(new Error('Timeout creating org')), 15000);
+        });
+
+        // 1. Criar organização padrão
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const orgPromise = (supabase as any)
+          .from('organizacoes')
+          .insert({
+            slug: `org-${user.id.slice(0, 8)}`,
+            nome: `Organização de ${user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário'}`,
+            status: 'ativa',
+            plano: 'trial'
+          })
+          .select()
+          .single();
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: org, error: orgError } = await Promise.race([orgPromise, orgTimeout]) as any;
+        clearTimeout(orgTimeoutId!);
+
+        if (orgError) {
+          console.error('Erro ao criar organização:', orgError);
+          return;
+        }
+
+        console.log('✅ Organização criada:', org.id);
+
+        // 2. Criar usuário
+        let userTimeoutId: ReturnType<typeof setTimeout>;
+        const userTimeout = new Promise((_, reject) => {
+          userTimeoutId = setTimeout(() => reject(new Error('Timeout creating user')), 15000);
         });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const insertPromise = (supabase as any)
+        const userPromise = (supabase as any)
           .from('usuarios')
           .insert({
             id: user.id,
             email: user.email!,
+            organizacao_id: org.id,
             nome: user.user_metadata?.full_name || user.user_metadata?.nome || user.email?.split('@')[0] || 'Usuário',
             ativo: true
           });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: insertError } = await Promise.race([insertPromise, insertTimeout]) as any;
-        clearTimeout(insertTimeoutId!);
+        const { error: userError } = await Promise.race([userPromise, userTimeout]) as any;
+        clearTimeout(userTimeoutId!);
 
-        if (insertError) {
-          console.error('Erro ao criar perfil do usuário:', insertError);
+        if (userError) {
+          console.error('Erro ao criar usuário:', userError);
+          return;
         }
+
+        console.log('✅ Usuário criado');
+
+        // 3. Criar registro em organizacao_usuarios (CRÍTICO!)
+        let memTimeoutId: ReturnType<typeof setTimeout>;
+        const memTimeout = new Promise((_, reject) => {
+          memTimeoutId = setTimeout(() => reject(new Error('Timeout creating membership')), 15000);
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const memPromise = (supabase as any)
+          .from('organizacao_usuarios')
+          .insert({
+            organizacao_id: org.id,
+            usuario_id: user.id,
+            role: 'owner', // Primeiro usuário é owner
+            ativo: true
+          });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: memError } = await Promise.race([memPromise, memTimeout]) as any;
+        clearTimeout(memTimeoutId!);
+
+        if (memError) {
+          console.error('Erro ao criar membership:', memError);
+          return;
+        }
+
+        console.log('✅ Membership criado - Usuário agora tem acesso!');
+      } else {
+        console.log('✅ Usuário já existe:', existingUser.id);
       }
     } catch (error) {
       console.error('Erro/Timeout na sincronização do perfil:', error);
